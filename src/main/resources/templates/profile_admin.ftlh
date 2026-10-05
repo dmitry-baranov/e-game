@@ -104,7 +104,7 @@
 
 <script>
     function loadAllGames() {
-        fetch('http://localhost:80/games')
+        fetch('/games')
             .then(response => response.json())
             .then(data => {
                 // Получить ссылки на элементы таблицы
@@ -132,7 +132,7 @@
                     button.innerText = 'Перейти';
                     button.classList = 'btn btn-outline-primary';
                     button.addEventListener('click', function () {
-                        window.location.href = 'http://localhost:80/game/' + item.id;
+                        window.location.href = '/game/' + item.id;
                     })
                     cell4.appendChild(button);
                 });

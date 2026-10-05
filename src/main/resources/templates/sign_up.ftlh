@@ -90,7 +90,7 @@
                                    value="Зарегистрироваться">
                         </label>
                         <p class="small fw-bold mt-2 pt-1 mb-0">Уже есть аккаунт? <a
-                                    href="http://localhost:80/sign-in"
+                                    href="/sign-in"
                                     class="link-danger">Войти</a></p>
                     </div>
 

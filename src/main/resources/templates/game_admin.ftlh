@@ -166,7 +166,7 @@
 <script>
     function loadManufacturersData() {
         // Выполнить HTTP-запрос для загрузки данных
-        fetch('http://localhost:80/game/${game.id}/manufacturers-parameters')
+        fetch('/game/${game.id}/manufacturers-parameters')
             .then(response => response.json())
             .then(data => {
                 // Получить ссылки на элементы таблицы

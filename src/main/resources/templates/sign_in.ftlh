@@ -92,7 +92,7 @@
                                    style="padding-left: 2.5rem; padding-right: 2.5rem;" type="submit" value="Войти">
                         </label>
                         <p class="small fw-bold mt-2 pt-1 mb-0">Еще не зарегистрированы? <a
-                                    href="http://localhost:80/sign-up"
+                                    href="/sign-up"
                                     class="link-danger">Регистрация</a></p>
                     </div>
 

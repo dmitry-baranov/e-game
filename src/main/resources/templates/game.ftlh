@@ -287,7 +287,7 @@
     });
 
     function updateCompetitorsData() {
-        fetch('http://localhost:80/manufacturer/' + ${manufacturer.id} + '/competitors-data')
+        fetch('/manufacturer/' + ${manufacturer.id} + '/competitors-data')
             .then(response => response.json())
             .then(competitors => {
                 const competitorsContainer = document.getElementById("competitorsContainer");
@@ -347,7 +347,7 @@
     }
 
     <#--document.getElementById("updateCompetitorsButton").addEventListener("click", function () {-->
-    <#--    fetch('http://localhost:80/manufacturer/' + ${game.id} + '/competitors-data')-->
+    <#--    fetch('/manufacturer/' + ${game.id} + '/competitors-data')-->
     <#--        .then(response => response.json())-->
     <#--        .then(competitors => {-->
     <#--            const competitorsContainer = document.getElementById("competitorsContainer");-->
@@ -390,7 +390,7 @@
 
     function fetchBalanceAndDebt() {
         $.ajax({
-            url: 'http://localhost:80/game/' + ${game.id} + '/financial-status/' + ${account.id},
+            url: '/game/' + ${game.id} + '/financial-status/' + ${account.id},
             type: 'GET',
             dataType: 'json',
             success: function (data) {
@@ -414,7 +414,7 @@
     let data = {};
 
     function fetchData() {
-        fetch('http://localhost:80/game/revenue-data/' + ${manufacturer.id})
+        fetch('/game/revenue-data/' + ${manufacturer.id})
             .then(response => response.json())
             .then(newData => {
                 // создаем массив данных для графика
@@ -438,7 +438,7 @@
                 chart1.update();
             });
 
-        fetch('http://localhost:80/game/' + ${game.id} + '/advertising-intensity/' + ${account.id})
+        fetch('/game/' + ${game.id} + '/advertising-intensity/' + ${account.id})
             .then(response => response.json())
             .then(data => {
                 // Находим максимальный номер дня в списке объектов
@@ -538,7 +538,7 @@
     });
 
     function getChartDataFromItem(competitorId, chart) {
-        fetch('http://localhost:80/game/revenue-data/' + competitorId)
+        fetch('/game/revenue-data/' + competitorId)
             .then(response => response.json())
             .then(newData => {
                 // создаем массив данных для графика
