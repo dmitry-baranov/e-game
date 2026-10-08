@@ -139,7 +139,10 @@ SERVER_PORT=8080 java -jar target/diploma-0.1.jar
 
 ## Структура проекта
 
+Технические задания по агентам и экспериментам собраны в корневой директории [`analitics/`](analitics/): [первый этап](analitics/STRATEGY_AGENTS_TASK.md), [второй этап](analitics/STRATEGY_AGENTS_STAGE2_TASK.md), [третий этап](analitics/STRATEGY_AGENTS_STAGE3_TASK.md), [четвёртый этап — аналитика](analitics/STRATEGY_AGENTS_STAGE4_TASK.md). Отчёты о реализации этапов лежат в корне репозитория.
+
 ```text
+analitics/         технические задания по этапам разработки агентов
 src/main/java/ru/itis/diploma/
   controller/       страницы и HTTP-маршруты
   dto/              данные форм и ответов
