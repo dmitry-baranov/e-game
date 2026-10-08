@@ -1,0 +1,51 @@
+services:
+  experiment-db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: experiments
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - experiment_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d experiments"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  experiment-app:
+    build:
+      context: .
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://experiment-db:5432/experiments
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EXPERIMENT_ENABLED: "true"
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "false"
+      LOGGING_LEVEL_RU_ITIS_DIPLOMA_SERVICE: WARN
+      STRATEGY_PREDICTOR_URL: http://experiment-ml:8090
+    ports:
+      - "8081:8080"
+    depends_on:
+      experiment-db:
+        condition: service_healthy
+
+  experiment-ml:
+    build:
+      context: .
+      dockerfile: ml/Dockerfile
+    environment:
+      STRATEGY_DATABASE_URL: postgresql://postgres:postgres@experiment-db:5432/experiments
+      STRATEGY_DATASET: experiment
+      STRATEGY_AUTO_TRAIN: "false"
+    volumes:
+      - experiment_models:/app/artifacts
+    depends_on:
+      experiment-db:
+        condition: service_healthy
+
+volumes:
+  experiment_postgres_data:
+  experiment_models:

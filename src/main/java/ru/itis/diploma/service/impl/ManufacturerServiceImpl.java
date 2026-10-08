@@ -2,6 +2,7 @@ package ru.itis.diploma.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.itis.diploma.dto.CommonProductionParameters;
 import ru.itis.diploma.dto.InitialProductionParameters;
 import ru.itis.diploma.dto.ManufacturerFinancialStatus;
@@ -16,21 +17,23 @@ import ru.itis.diploma.model.ProductionParameters;
 import ru.itis.diploma.repository.AdvertisementRepository;
 import ru.itis.diploma.repository.BusinessCreditPaymentRepository;
 import ru.itis.diploma.repository.InvestmentCreditPaymentRepository;
+import ru.itis.diploma.repository.GameRepository;
 import ru.itis.diploma.repository.ManufacturerRepository;
 import ru.itis.diploma.repository.ProductionParametersRepository;
+import ru.itis.diploma.repository.TradingSessionResultsRepository;
 import ru.itis.diploma.service.AccountService;
 import ru.itis.diploma.service.ManufacturerService;
 import ru.itis.diploma.service.PaymentService;
+import ru.itis.diploma.service.StrategyTrainingCapture;
 
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import ru.itis.diploma.model.enums.GameStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -42,9 +45,10 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     private final AdvertisementRepository advertisementRepository;
     private final BusinessCreditPaymentRepository businessCreditPaymentRepository;
     private final InvestmentCreditPaymentRepository investmentCreditPaymentRepository;
+    private final GameRepository gameRepository;
+    private final TradingSessionResultsRepository tradingSessionResultsRepository;
+    private final StrategyTrainingCapture trainingCapture;
     private static final int MONTH = 30;
-    public static Map<Long, Integer> MANUFACTURER_CURRENT_PRODUCT_COUNT = new HashMap<>();
-    public static Map<Long, BigDecimal> MANUFACTURER_REVENUE = new HashMap<>();
 
     @Override
     public Optional<ProductionParameters> getLastProductionParameters(Long manufacturerId) {
@@ -61,7 +65,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     @Override
     public Optional<ProductionParameters> getActualProductionParameters(Long manufacturerId) {
         var actualParameters = productionParametersRepository.findByManufacturerId(manufacturerId).stream()
-            .filter(p -> p.getStartDate() >= Game.currentDay - p.getTimeToMarket())
+            .filter(p -> p.getStartDate() >= p.getManufacturer().getGame().getCurrentDay() - p.getTimeToMarket())
             .toList();
         if (actualParameters.isEmpty()) {
             return Optional.empty();
@@ -76,7 +80,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     @Override
     public Optional<Advertisement> getActualAdvertisement(Long manufacturerId) {
         var actualAdvertisements = advertisementRepository.findByManufacturerId(manufacturerId).stream()
-            .filter(a -> a.getEndDate() >= Game.currentDay)
+            .filter(a -> a.getEndDate() >= a.getManufacturer().getGame().getCurrentDay())
             .toList();
         if (actualAdvertisements.isEmpty()) {
             return Optional.empty();
@@ -134,8 +138,22 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     }
 
     @Override
+    @Transactional
     public void defineInitialProductionParameters(InitialProductionParameters initialProductionParameters, Long accountId, Game game) {
+        game = gameRepository.lockById(game.getId()).orElseThrow();
         var manufacturer = getManufacturerByAccountIdAndGameId(accountId, game.getId());
+        if (manufacturer == null || manufacturer.isEnteredInitialProductionParameters() || game.getStatus() == GameStatus.FINISHED)
+            throw new IllegalArgumentException("Нельзя повторно открыть предприятие");
+        if (initialProductionParameters.getProductionCapacityPerDay() == null ||
+            initialProductionParameters.getProductionCapacityPerDay() < 1)
+            throw new IllegalArgumentException("Некорректная мощность");
+        validateAndCalculate(initialProductionParameters, game, initialProductionParameters.getProductionCapacityPerDay());
+        trainingCapture.capture(manufacturer, initialProductionParameters);
+        initialProductionParameters.setInvestmentCreditAmount(initialProductionParameters.getCostPrice()
+            .multiply(BigDecimal.valueOf(initialProductionParameters.getProductCount()))
+            .add(initialProductionParameters.getAdvertisingCost())
+            .add(game.getProductPower().multiply(BigDecimal.valueOf(
+                (initialProductionParameters.getProductionCapacityPerDay() + 9) / 10))));
         manufacturer.setInvestmentCreditAmount(initialProductionParameters.getInvestmentCreditAmount());
         manufacturer.setEnteredInitialProductionParameters(true);
         manufacturer.setBalance(BigDecimal.ZERO);
@@ -148,19 +166,34 @@ public class ManufacturerServiceImpl implements ManufacturerService {
         var productionParameters = saveProductParameters(manufacturer, initialProductionParameters);
         productionParameters.setBusinessCreditAmount(BigDecimal.ZERO);
         var payment = InvestmentCreditPayment.builder()
-            .date(0)
+            .date(game.getCurrentDay())
             .manufacturer(manufacturer)
             .principalPayment(BigDecimal.ZERO)
             .interestAmount(BigDecimal.ZERO)
-            .nextDate(Game.currentDay + MONTH)
+            .nextDate(game.getCurrentDay() + MONTH)
             .build();
         investmentCreditPaymentRepository.save(payment);
-        MANUFACTURER_CURRENT_PRODUCT_COUNT.put(manufacturer.getId(), 0);
     }
 
     @Override
+    @Transactional
     public void defineNewProductionParameters(NewProductionParameters newProductionParameters, Long accountId, Game game) {
+        game = gameRepository.lockById(game.getId()).orElseThrow();
         var manufacturer = getManufacturerByAccountIdAndGameId(accountId, game.getId());
+        if (manufacturer == null || !manufacturer.isEnteredInitialProductionParameters() || game.getStatus() == GameStatus.FINISHED)
+            throw new IllegalArgumentException("Предприятие недоступно");
+        if (getActualProductionParameters(manufacturer.getId()).isPresent())
+            throw new IllegalArgumentException("Текущий цикл ещё не завершён");
+        validateAndCalculate(newProductionParameters, game, manufacturer.getProductionCapacityPerDay());
+        newProductionParameters.setProductionCosts(newProductionParameters.getCostPrice()
+            .multiply(BigDecimal.valueOf(newProductionParameters.getProductCount()))
+            .add(newProductionParameters.getAdvertisingCost()));
+        if (newProductionParameters.getBusinessCreditAmount() == null ||
+            newProductionParameters.getBusinessCreditAmount().signum() < 0 ||
+            manufacturer.getBalance().add(newProductionParameters.getBusinessCreditAmount())
+                .compareTo(newProductionParameters.getProductionCosts()) < 0)
+            throw new IllegalArgumentException("Недостаточно средств для производства");
+        trainingCapture.capture(manufacturer, newProductionParameters);
         manufacturer.setBalance(manufacturer.getBalance()
             .add(newProductionParameters.getBusinessCreditAmount().subtract(newProductionParameters.getProductionCosts())));
         manufacturerRepository.save(manufacturer);
@@ -177,7 +210,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
                         productionParameters.getBusinessCreditAmount(),
                         game.getInterestRateBusinessCredit(),
                         productionParameters.getTimeToMarket())))
-                .nextDate(Game.currentDay + productionParameters.getTimeToMarket() * 2)
+                .nextDate(game.getCurrentDay() + productionParameters.getTimeToMarket() * 2)
                 .build();
             businessCreditPaymentRepository.save(payment);
         }
@@ -189,13 +222,16 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     public ManufacturerFinancialStatus getManufacturerFinancialStatus(Game game, Long accountId) {
         var manufacturer = getManufacturerByAccountIdAndGameId(accountId, game.getId());
         var actualProductionParameters = getLastProductionParameters(manufacturer.getId()).get();
-        var activeManufacturingCycle = Game.currentDay <= (actualProductionParameters.getStartDate() +
+        var activeManufacturingCycle = game.getCurrentDay() <= (actualProductionParameters.getStartDate() +
             actualProductionParameters.getTimeToMarket());
 
         return ManufacturerFinancialStatus.builder()
-            .day(Game.currentDay)
+            .day(game.getCurrentDay())
             .balance(manufacturer.getBalance())
-            .todayRevenue(MANUFACTURER_REVENUE.getOrDefault(manufacturer.getId(), BigDecimal.ZERO))
+            .todayRevenue(tradingSessionResultsRepository.findByManufacturerId(manufacturer.getId()).stream()
+                .filter(result -> result.getTradeDate().equals(game.getCurrentDay()))
+                .map(result -> result.getPrice().multiply(BigDecimal.valueOf(result.getProductNumber())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add))
             .investmentCreditDebt(calculateManufacturerInvestmentCreditDebt(manufacturer, game))
             .businessCreditDebt(calculateManufacturerBusinessCreditDebt(manufacturer))
             .timeToMarketEndDay(actualProductionParameters.getStartDate() + actualProductionParameters.getTimeToMarket())
@@ -212,7 +248,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
             .add(calculateInvestmentCreditInterestAmountOnCurrentDay(
                 manufacturer.getInvestmentCreditDebt(),
                 game.getInvestmentCreditTermMonths(),
-                Game.currentDay - lastPayment.getDate()));
+                game.getCurrentDay() - lastPayment.getDate()));
     }
 
     private BigDecimal calculateInvestmentCreditInterestAmountOnCurrentDay(BigDecimal investmentCreditDebt,
@@ -231,7 +267,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
                 manufacturerProductionParameters.stream()
                     .map(ProductionParameters::getId)
                     .toList(),
-                Game.currentDay).stream()
+                manufacturer.getGame().getCurrentDay()).stream()
             .map(BusinessCreditPayment::getNextAmount)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
@@ -302,11 +338,33 @@ public class ManufacturerServiceImpl implements ManufacturerService {
                 .manufacturer(manufacturer)
                 .cost(productionParameters.getAdvertisingCost())
                 .intensityIndex(productionParameters.getAdvertisingIntensityIndex())
-                .startDate(Game.currentDay + 1)
-                .endDate(Game.currentDay + productionParameters.getAdvertisingDays())
+                .startDate(manufacturer.getGame().getCurrentDay() + 1)
+                .endDate(manufacturer.getGame().getCurrentDay() + productionParameters.getAdvertisingDays())
                 .build();
             advertisementRepository.save(advertisement);
         }
+    }
+
+    private void validateAndCalculate(CommonProductionParameters p, Game game, int capacity) {
+        if (p.getProductCount() == null || p.getProductCount() < 1 || p.getProductCount() > 1000000 ||
+            p.getAssortment() == null || p.getAssortment() < 1 || p.getAssortment() > p.getProductCount() ||
+            p.getQualityIndex() == null || p.getQualityIndex().signum() < 0 ||
+            p.getQualityIndex().compareTo(BigDecimal.ONE) > 0 ||
+            p.getPrice() == null || p.getPrice().signum() <= 0 ||
+            p.getAdvertisingIntensityIndex() == null || p.getAdvertisingIntensityIndex() < 0 ||
+            p.getAdvertisingIntensityIndex() > 7 || p.getAdvertisingDays() == null || p.getAdvertisingDays() < 0 ||
+            (p.getAdvertisingDays() == 0) != (p.getAdvertisingIntensityIndex() == 0))
+            throw new IllegalArgumentException("Некорректные параметры производства");
+        int days = (p.getProductCount() + capacity - 1) / capacity;
+        if (p.getAdvertisingDays() > days) throw new IllegalArgumentException("Реклама дольше производственного цикла");
+        p.setTimeToMarket(days);
+        double n = (double) p.getProductCount() / p.getAssortment();
+        BigDecimal coefficient = n > 1000 ? new BigDecimal("0.7") : n > 100 ? new BigDecimal("0.9") : BigDecimal.ONE;
+        p.setCostPrice(game.getBaseCostPrice().multiply(p.getQualityIndex()).multiply(coefficient)
+            .setScale(2, RoundingMode.HALF_UP));
+        p.setAdvertisingCost(game.getBaseAdvertisementPrice()
+            .multiply(BigDecimal.valueOf(p.getAdvertisingIntensityIndex()))
+            .multiply(BigDecimal.valueOf(p.getAdvertisingDays())).setScale(2, RoundingMode.HALF_UP));
     }
 
     private ProductionParameters saveProductParameters(Manufacturer manufacturer, CommonProductionParameters productionParameters) {
@@ -318,7 +376,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
             .assortment(productionParameters.getAssortment())
             .qualityIndex(productionParameters.getQualityIndex())
             .productionCapacityPerDay(manufacturer.getProductionCapacityPerDay())
-            .startDate(Game.currentDay)
+            .startDate(manufacturer.getGame().getCurrentDay())
             .timeToMarket(productionParameters.getTimeToMarket())
             .build();
         productionParametersRepository.save(resultProductionParameters);

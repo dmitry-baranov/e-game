@@ -3,6 +3,7 @@ package ru.itis.diploma.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.PeriodicTrigger;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +13,8 @@ import ru.itis.diploma.service.TradingSessionService;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.HashMap;
 
 @Controller
 @RequiredArgsConstructor
@@ -21,30 +24,36 @@ public class TradingSessionController {
     private final TradingSessionService tradingSessionService;
     private final TaskScheduler taskScheduler;
 
-    private ScheduledFuture<?> scheduledTask;
+    private final Map<Long, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
+
+    public synchronized boolean isRunning(Long gameId) {
+        ScheduledFuture<?> task = scheduledTasks.get(gameId);
+        return task != null && !task.isCancelled() && !task.isDone();
+    }
 
     @GetMapping("game/{id}/trading-sessions/start/{timeUnit}")
-    public String startTradingSessions(@PathVariable("id") Long gameId, @PathVariable long timeUnit) {
-        if (scheduledTask == null) {
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public synchronized String startTradingSessions(@PathVariable("id") Long gameId, @PathVariable long timeUnit) {
+        if (!isRunning(gameId)) {
             var game = gameService.getGameById(gameId);
-            game.setStatus(GameStatus.STARTED);
-            gameService.save(game);
+            if (game.getStatus() == GameStatus.FINISHED) return "redirect:/game/" + gameId;
+            gameService.setStatus(gameId, GameStatus.STARTED);
 
-            PeriodicTrigger trigger = new PeriodicTrigger(timeUnit, TimeUnit.MINUTES);
-            scheduledTask = taskScheduler.schedule(() -> tradingSessionService.doDaysActivities(game), trigger);
+            PeriodicTrigger trigger = new PeriodicTrigger(game.getTimeUnit(), TimeUnit.MINUTES);
+            scheduledTasks.put(gameId, taskScheduler.schedule(() ->
+                tradingSessionService.doDaysActivities(gameService.getGameById(gameId)), trigger));
         }
         return "redirect:/game/" + gameId;
     }
 
     @GetMapping("game/{id}/trading-sessions/stop")
-    public String stopTradingSessions(@PathVariable("id") Long gameId) {
-        if (scheduledTask != null) {
-            scheduledTask.cancel(true);
-            scheduledTask = null;
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public synchronized String stopTradingSessions(@PathVariable("id") Long gameId) {
+        ScheduledFuture<?> task = scheduledTasks.remove(gameId);
+        if (task != null) {
+            task.cancel(false);
         }
-        var game = gameService.getGameById(gameId);
-        game.setStatus(GameStatus.STOPPED);
-        gameService.save(game);
+        gameService.setStatus(gameId, GameStatus.STOPPED);
         return "redirect:/game/" + gameId;
     }
 

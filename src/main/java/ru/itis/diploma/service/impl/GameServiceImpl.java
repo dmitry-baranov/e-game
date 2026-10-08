@@ -2,6 +2,7 @@ package ru.itis.diploma.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.itis.diploma.dto.CreateGameDto;
 import ru.itis.diploma.dto.GameDto;
 import ru.itis.diploma.exception.EntityNotFoundException;
@@ -18,12 +19,8 @@ import ru.itis.diploma.service.ManufacturerService;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 
-import static ru.itis.diploma.service.TradingSessionService.MANUFACTURER_STATISTICS_INFO;
-import static ru.itis.diploma.service.impl.ManufacturerServiceImpl.MANUFACTURER_CURRENT_PRODUCT_COUNT;
-import static ru.itis.diploma.service.impl.ManufacturerServiceImpl.MANUFACTURER_REVENUE;
 
 @Service
 @RequiredArgsConstructor
@@ -41,12 +38,19 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    @Transactional
     public void createGame(CreateGameDto gameDto) {
+        createGameForExperiment(gameDto);
+    }
+
+    // The experiment owns its isolated database and its own admission control.
+    public Game createGameForExperiment(CreateGameDto gameDto) {
         var newGame = Game.builder()
             .name(gameDto.getName())
             .timeUnit(gameDto.getTimeUnit())
             .startDate(LocalDateTime.now())
             .status(GameStatus.CREATED)
+            .currentDay(0)
             .interestRateInvestmentCredit(gameDto.getInterestRateInvestmentCredit())
             .interestRateBusinessCredit(gameDto.getInterestRateBusinessCredit())
             .investmentCreditTermMonths(gameDto.getInvestmentCreditTermMonths())
@@ -64,11 +68,8 @@ public class GameServiceImpl implements GameService {
             .habitTrackingDays(gameDto.getHabitTrackingDays())
             .build();
         gameRepository.save(newGame);
-        Game.currentDay = 0;
-        MANUFACTURER_CURRENT_PRODUCT_COUNT = new HashMap<>();
-        MANUFACTURER_REVENUE = new HashMap<>();
-        MANUFACTURER_STATISTICS_INFO = new HashMap<>();
         createManufacturers(newGame, gameDto.getAccountIds());
+        return newGame;
     }
 
     private void createManufacturers(Game newGame, List<Long> accountIds) {
@@ -77,6 +78,7 @@ public class GameServiceImpl implements GameService {
                 .game(newGame)
                 .account(accountService.getById(userId))
                 .investmentCreditDebt(BigDecimal.ZERO)
+                .currentProductCount(0)
                 .investmentCreditIsRepaid(false)
                 .build())
             .toList();
@@ -103,8 +105,17 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
+    @Transactional
+    public void setStatus(Long gameId, GameStatus status) {
+        Game game = gameRepository.lockById(gameId).orElseThrow();
+        if (game.getStatus() != GameStatus.FINISHED) game.setStatus(status);
+    }
+
+    @Override
+    @Transactional
     public void finishGame(Long id) {
-        Game game = getGameById(id);
+        Game game = gameRepository.lockById(id).orElseThrow();
+        if (game.getStatus() == GameStatus.FINISHED) return;
         game.setStatus(GameStatus.FINISHED);
         game.setEndDate(LocalDateTime.now());
         save(game);

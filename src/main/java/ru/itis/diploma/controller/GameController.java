@@ -17,12 +17,12 @@ import ru.itis.diploma.security.details.AccountUserDetails;
 import ru.itis.diploma.service.AccountService;
 import ru.itis.diploma.service.GameService;
 import ru.itis.diploma.service.ManufacturerService;
+import ru.itis.diploma.service.StrategySnapshotService;
 
 import java.util.Comparator;
 import java.util.List;
 
 import static ru.itis.diploma.model.enums.GameStatus.FINISHED;
-import static ru.itis.diploma.model.enums.GameStatus.STARTED;
 
 @Controller
 @RequiredArgsConstructor
@@ -31,6 +31,8 @@ public class GameController {
     private final ManufacturerService manufacturerService;
     private final GameService gameService;
     private final AccountService accountService;
+    private final TradingSessionController tradingSessionController;
+    private final StrategySnapshotService strategySnapshotService;
 
     @GetMapping("/game")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -67,12 +69,15 @@ public class GameController {
         }
 
         if (Account.Role.ADMIN.equals(userDetails.getAccount().getRole())) {
-            model.addAttribute("startedTradingSessions", STARTED.equals(game.getStatus()));
+            model.addAttribute("startedTradingSessions", tradingSessionController.isRunning(id));
             model.addAttribute("manufacturers", manufacturerService.getGameManufacturers(id));
             return "game_admin";
         }
 
         var manufacturer = manufacturerService.getManufacturerByAccountIdAndGameId(userDetails.getAccount().getId(), id);
+        if (manufacturer == null) throw new org.springframework.security.access.AccessDeniedException("Нет доступа к игре");
+        model.addAttribute("ownSnapshot", strategySnapshotService.snapshot(id, userDetails.getAccount().getId()));
+        model.addAttribute("dailySales", strategySnapshotService.allDailySales(id, userDetails.getAccount().getId()));
         if (manufacturer.isEnteredInitialProductionParameters()) {
             model.addAttribute("manufacturer", manufacturer);
             model.addAttribute("productionParameters", manufacturerService.getAllProductionParameters(manufacturer));
@@ -85,8 +90,9 @@ public class GameController {
     @PostMapping("/game/{id}/finish")
     @PreAuthorize("hasAuthority('ADMIN')")
     public String finishGame(@PathVariable Long id,
-                             @AuthenticationPrincipal AccountUserDetails userDetails,
-                             Model model) {
+                              @AuthenticationPrincipal AccountUserDetails userDetails,
+                              Model model) {
+        tradingSessionController.stopTradingSessions(id);
         gameService.finishGame(id);
         return "redirect:/game/" + id;
     }

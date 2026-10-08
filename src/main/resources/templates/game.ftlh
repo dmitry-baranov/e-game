@@ -83,7 +83,7 @@
                         <p>Цена создания единицы мощности производства - ${game.productPower}</p>
                         <p>Налог с продаж - ${game.salesTax}%</p>
                         <p>Процентная ставка инвестиционного кредита - ${game.interestRateInvestmentCredit}%</p>
-                        <p>Срок инвестиционного кредита - ${game.interestRateInvestmentCredit} мес</p>
+                        <p>Срок инвестиционного кредита - ${game.investmentCreditTermMonths} мес</p>
                     </div>
                     <div class="col-md-12">
                         <h2>Результат игры:</h2>
@@ -129,7 +129,9 @@
                         <p>Цена создания единицы мощности производства - ${game.productPower}</p>
                         <p>Налог с продаж - ${game.salesTax}%</p>
                         <p>Процентная ставка инвестиционного кредита - ${game.interestRateInvestmentCredit}%</p>
-                        <p>Срок инвестиционного кредита - ${game.interestRateInvestmentCredit} мес</p>
+                        <p>Срок инвестиционного кредита - ${game.investmentCreditTermMonths} мес</p>
+                        <p>Базовая себестоимость: ${game.baseCostPrice}; базовая цена рекламы: ${game.baseAdvertisementPrice}</p>
+                        <p>Ставка оборотного кредита: ${game.interestRateBusinessCredit}%</p>
                     </div>
                 </#if>
                 <#--                <div class="container-fluid mt-5">-->
@@ -184,6 +186,8 @@
                     </#if>
                 </div>
                 <#if game.status != 'FINISHED'>
+                    <div class="col-md-12 my-3"><a class="btn btn-outline-primary" href="/game/${game.id}/strategies">Получить рекомендации и управлять своими сценариями</a>
+                        <p>Выбранный курс: ${manufacturer.selectedStrategy!"не выбран"}. Выбор курса не меняет параметры производства.</p></div>
                     <div class="input-group">
                         <button class="btn btn-primary" type="button" id="enterParametersButton"
                                 onclick="window.location.href='/game/${game.id}/production-parameters';">Определить
@@ -196,6 +200,18 @@
         <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
             <div class="container d-flex justify-content-center">
                 <div class="row">
+                    <div class="col-12 mt-3"><h3>Мои продажи и остатки</h3>
+                        <p>Сейчас на складе: ${ownSnapshot.getStock()} шт.</p>
+                        <table class="table"><thead><tr><th>День</th><th>Продано</th><th>Выпущено</th><th>Остаток</th></tr></thead><tbody>
+                        <#list dailySales as sale><tr><td>${sale.getDay()}</td><td>${sale.getSold()}</td><td>${sale.getProduced()}</td><td>${sale.getStock()}</td></tr>
+                        <#else><tr><td colspan="4">Пока нет завершённых торговых дней</td></tr></#list>
+                        </tbody></table>
+                        <h3>Мои ближайшие платежи</h3>
+                        <table class="table"><thead><tr><th>День</th><th>Платёж</th><th>Сумма</th></tr></thead><tbody>
+                        <#list ownSnapshot.getPayments() as payment><tr><td>${payment.getDay()}</td><td>${payment.getLabel()}</td><td>${payment.getAmount()}</td></tr>
+                        <#else><tr><td colspan="3">Известных платежей нет</td></tr></#list>
+                        </tbody></table>
+                    </div>
                     <div class="col-12">
                         <div style="margin-top: 15px">
                             <canvas width="800" height="450" id="chart1"></canvas>

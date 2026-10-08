@@ -23,4 +23,7 @@ public interface TradingSessionResultsRepository extends JpaRepository<TradingSe
 
     @Query("SELECT t FROM TradingSessionResults t WHERE t.productNumber > 0")
     List<TradingSessionResults> findAllByProductNumberGreaterThanZero();
+
+    @Query("SELECT t FROM TradingSessionResults t WHERE t.manufacturer.game.id = :gameId AND t.productNumber > 0 AND t.isWornOut = false")
+    List<TradingSessionResults> findUnwornPurchasesByGameId(@Param("gameId") Long gameId);
 }

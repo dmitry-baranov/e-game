@@ -2,6 +2,7 @@ package ru.itis.diploma.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +21,7 @@ import ru.itis.diploma.service.AccountService;
 public class ProfileController {
 
     private final AccountService accountService;
+    @Value("${experiment.enabled:false}") private boolean experimentsEnabled;
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
@@ -27,6 +29,7 @@ public class ProfileController {
         AccountDto account = accountService.getByEmail(userDetails.getUsername());
         model.addAttribute("account", account);
         if (Account.Role.ADMIN.equals(userDetails.getAccount().getRole())) {
+            model.addAttribute("botExperimentsEnabled", experimentsEnabled);
             return "profile_admin";
         }
         return "profile";
