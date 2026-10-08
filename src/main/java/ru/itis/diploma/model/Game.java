@@ -22,8 +22,6 @@ import java.time.LocalDateTime;
 @Entity
 public class Game {
 
-    public static int currentDay;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -36,6 +34,9 @@ public class Game {
 
     @Enumerated(EnumType.STRING)
     private GameStatus status;
+
+    @Builder.Default
+    private Integer currentDay = 0;
 
     private Integer timeUnit; // модельное время в минутах(сутки = ? минут)
 

@@ -2,6 +2,7 @@ package ru.itis.diploma.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.itis.diploma.model.Advertisement;
 import ru.itis.diploma.model.Game;
 import ru.itis.diploma.model.Manufacturer;
@@ -9,6 +10,8 @@ import ru.itis.diploma.model.ProductionParameters;
 import ru.itis.diploma.model.StatisticsInfo;
 import ru.itis.diploma.model.TradingSessionResults;
 import ru.itis.diploma.repository.StatisticsInfoRepository;
+import ru.itis.diploma.repository.GameRepository;
+import ru.itis.diploma.model.enums.GameStatus;
 import ru.itis.diploma.repository.TradingSessionResultsRepository;
 
 import java.math.BigDecimal;
@@ -20,8 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static ru.itis.diploma.service.impl.ManufacturerServiceImpl.MANUFACTURER_CURRENT_PRODUCT_COUNT;
-
 @Service
 @RequiredArgsConstructor
 public class TradingSessionService {
@@ -31,16 +32,20 @@ public class TradingSessionService {
     private final BuyerService buyerService;
     private final PaymentService paymentService;
     private final StatisticsInfoRepository statisticsInfoRepository;
+    private final GameRepository gameRepository;
 
-    public static Map<Long, StatisticsInfo> MANUFACTURER_STATISTICS_INFO = new HashMap<>();
-
-    public void doDaysActivities(Game game) {
-        Game.currentDay++;
+    @Transactional
+    public void doDaysActivities(Game requestedGame) {
+        Game game = gameRepository.lockById(requestedGame.getId()).orElseThrow();
+        if (game.getStatus() != GameStatus.STARTED ||
+            !game.getCurrentDay().equals(requestedGame.getCurrentDay())) return;
+        game.setCurrentDay(game.getCurrentDay() + 1);
+        Map<Long, StatisticsInfo> statistics = new HashMap<>();
         var manufacturers = manufacturerService.getGameManufacturers(game.getId());
         var purchaseCountsByManufacturerId = getPurchaseCountsByManufacturerId(
             manufacturers.stream()
                 .map(Manufacturer::getId)
-                .toList(), game.getHabitTrackingDays());
+                .toList(), game.getHabitTrackingDays(), game.getCurrentDay());
         var productionParametersList = manufacturers.stream()
             .map(manufacturer -> manufacturerService.getLastProductionParameters(manufacturer.getId()).get())
             .sorted(Comparator.comparingDouble(p -> {
@@ -52,58 +57,56 @@ public class TradingSessionService {
                 return calculateValue(game, (ProductionParameters) p, manufacturerPurchaseCounts);
             }).reversed())
             .toList();
-        produceManufacturersProductsToMarket(productionParametersList);
-        buyerService.makePurchases(game, productionParametersList);
-        paymentService.makePayments(game);
-        setCurrentCreditDebtsAndBalanceToStatisticsInfo(game);
-        statisticsInfoRepository.saveAll(MANUFACTURER_STATISTICS_INFO.values());
+        produceManufacturersProductsToMarket(game, productionParametersList, statistics);
+        buyerService.makePurchases(game, productionParametersList, statistics);
+        paymentService.makePayments(game, statistics);
+        setCurrentCreditDebtsAndBalanceToStatisticsInfo(game, statistics);
+        statisticsInfoRepository.saveAll(statistics.values());
+        gameRepository.save(game);
     }
 
-    private void setCurrentCreditDebtsAndBalanceToStatisticsInfo(Game game) {
+    private void setCurrentCreditDebtsAndBalanceToStatisticsInfo(Game game, Map<Long, StatisticsInfo> statistics) {
         var manufacturers = manufacturerService.getGameManufacturers(game.getId());
         manufacturers.forEach(m -> {
-            StatisticsInfo statisticsInfo = MANUFACTURER_STATISTICS_INFO.get(m.getId());
+            StatisticsInfo statisticsInfo = statistics.get(m.getId());
+            statisticsInfo.setProductsInStock(m.getCurrentProductCount());
             statisticsInfo.setBalance(m.getBalance());
             statisticsInfo.setCurrentInvestmentCreditDebtAmount(manufacturerService.calculateManufacturerInvestmentCreditDebt(m, game));
             statisticsInfo.setCurrentBusinessCreditDebtAmount(manufacturerService.calculateManufacturerBusinessCreditDebt(m));
         });
     }
 
-    private void produceManufacturersProductsToMarket(List<ProductionParameters> productionParametersList) {
+    private void produceManufacturersProductsToMarket(Game game, List<ProductionParameters> productionParametersList,
+                                                       Map<Long, StatisticsInfo> statistics) {
         for (ProductionParameters productionParameters : productionParametersList) {
             var statisticsInfo = new StatisticsInfo();
             statisticsInfo.setManufacturer(productionParameters.getManufacturer());
             statisticsInfo.setProductionCapacityPerDay(productionParameters.getProductionCapacityPerDay());
             var timeToMarket = productionParameters.getTimeToMarket();
             var productsProduced = 0;
-            MANUFACTURER_CURRENT_PRODUCT_COUNT.putIfAbsent(productionParameters.getManufacturer().getId(), 0);
-            if ((Game.currentDay - productionParameters.getStartDate()) <= timeToMarket) {
-                if ((productionParameters.getStartDate() + timeToMarket) == Game.currentDay) {
+            Manufacturer manufacturer = productionParameters.getManufacturer();
+            if ((game.getCurrentDay() - productionParameters.getStartDate()) <= timeToMarket) {
+                if ((productionParameters.getStartDate() + timeToMarket) == game.getCurrentDay()) {
                     productsProduced = productionParameters.getProductCount() - (timeToMarket - 1) *
                         productionParameters.getProductionCapacityPerDay();
-                    MANUFACTURER_CURRENT_PRODUCT_COUNT.put(productionParameters.getManufacturer().getId(),
-                        MANUFACTURER_CURRENT_PRODUCT_COUNT.get(productionParameters.getManufacturer().getId()) +
-                            productsProduced);
                 } else {
                     productsProduced = productionParameters.getProductionCapacityPerDay();
-                    MANUFACTURER_CURRENT_PRODUCT_COUNT.put(productionParameters.getManufacturer().getId(),
-                        MANUFACTURER_CURRENT_PRODUCT_COUNT.get(productionParameters.getManufacturer().getId()) +
-                            productsProduced);
                 }
             }
+            manufacturer.setCurrentProductCount(manufacturer.getCurrentProductCount() + productsProduced);
             statisticsInfo.setProductsProduced(productsProduced);
-            statisticsInfo.setTradeDate(Game.currentDay);
+            statisticsInfo.setTradeDate(game.getCurrentDay());
             statisticsInfo.setPaidTaxesAmount(BigDecimal.ZERO);
             statisticsInfo.setCurrentInvestmentCreditDebtAmount(BigDecimal.ZERO);
             statisticsInfo.setCurrentBusinessCreditDebtAmount(BigDecimal.ZERO);
             statisticsInfo.setRepaidInvestmentCreditAmount(BigDecimal.ZERO);
             statisticsInfo.setRepaidBusinessCreditAmount(BigDecimal.ZERO);
-            MANUFACTURER_STATISTICS_INFO.put(productionParameters.getManufacturer().getId(), statisticsInfo);
+            statistics.put(manufacturer.getId(), statisticsInfo);
         }
     }
 
-    public Map<Long, Integer> getPurchaseCountsByManufacturerId(List<Long> manufacturerIds, int habitTrackingDays) {
-        int startDate = Game.currentDay - habitTrackingDays > 0 ? Game.currentDay - habitTrackingDays : 1;
+    public Map<Long, Integer> getPurchaseCountsByManufacturerId(List<Long> manufacturerIds, int habitTrackingDays, int currentDay) {
+        int startDate = currentDay - habitTrackingDays > 0 ? currentDay - habitTrackingDays : 1;
         List<TradingSessionResults> recentPurchases = tradingSessionResultsRepository
             .findByTradeDateGreaterThanEqualAndManufacturerIdIn(startDate, manufacturerIds);
         return recentPurchases.stream()

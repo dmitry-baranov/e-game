@@ -21,8 +21,8 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
-import static ru.itis.diploma.service.TradingSessionService.MANUFACTURER_STATISTICS_INFO;
 
 @Service
 @RequiredArgsConstructor
@@ -37,28 +37,28 @@ public class PaymentService {
     private final ManufacturerService manufacturerService;
     private final TradingSessionResultsRepository tradingSessionResultsRepository;
 
-    public void makePayments(Game game) {
-        makeSalesTaxPayments(game);
-        makeInvestmentCreditPayments(game);
-        makeBusinessCreditPayments(game);
+    public void makePayments(Game game, Map<Long, StatisticsInfo> statistics) {
+        makeSalesTaxPayments(game, statistics);
+        makeInvestmentCreditPayments(game, statistics);
+        makeBusinessCreditPayments(game, statistics);
     }
 
-    private void makeSalesTaxPayments(Game game) {
+    private void makeSalesTaxPayments(Game game, Map<Long, StatisticsInfo> statistics) {
         var manufacturers = manufacturerService.getGameManufacturers(game.getId());
         BigDecimal salesTax = game.getSalesTax();
-        if (Game.currentDay % MONTH == 0) {
+        if (game.getCurrentDay() % MONTH == 0) {
             ArrayList<SalesTaxPayment> salesTaxPayments = new ArrayList<>();
             for (Manufacturer manufacturer : manufacturers) {
                 Optional<SalesTaxPayment> lastPayment = salesTaxPaymentRepository.findLastByManufacturerId(manufacturer.getId());
                 int lastPaymentDate = lastPayment.isPresent() ? lastPayment.get().getDate() : 1;
 
-                BigDecimal purchasesTotal = tradingSessionResultsRepository.getPurchasesTotal(manufacturer.getId(), lastPaymentDate, Game.currentDay);
-                StatisticsInfo statisticsInfo = MANUFACTURER_STATISTICS_INFO.get(manufacturer.getId());
+                BigDecimal purchasesTotal = tradingSessionResultsRepository.getPurchasesTotal(manufacturer.getId(), lastPaymentDate, game.getCurrentDay());
+                StatisticsInfo statisticsInfo = statistics.get(manufacturer.getId());
                 if (purchasesTotal != null) {
                     var taxAmount = purchasesTotal.multiply(salesTax).divide(BigDecimal.valueOf(100), 2, RoundingMode.UP);
                     var payment = SalesTaxPayment.builder()
                         .amount(taxAmount)
-                        .date(Game.currentDay)
+                        .date(game.getCurrentDay())
                         .manufacturer(manufacturer)
                         .build();
                     salesTaxPayments.add(payment);
@@ -73,7 +73,7 @@ public class PaymentService {
         }
     }
 
-    private void makeBusinessCreditPayments(Game game) {
+    private void makeBusinessCreditPayments(Game game, Map<Long, StatisticsInfo> statistics) {
         var manufacturers = manufacturerService.getGameManufacturers(game.getId());
         for (Manufacturer manufacturer : manufacturers) {
             List<ProductionParameters> manufacturerProductionParameters = productionParametersRepository.findByManufacturerId(manufacturer.getId());
@@ -81,13 +81,13 @@ public class PaymentService {
                 manufacturerProductionParameters.stream()
                     .map(ProductionParameters::getId)
                     .toList(),
-                Game.currentDay);
+                game.getCurrentDay());
             for (BusinessCreditPayment payment : payments) {
                 var nextAmount = payment.getNextAmount();
                 var paymentProductionParameters = payment.getProductionParameters();
                 var newPayment = BusinessCreditPayment.builder()
                     .productionParameters(paymentProductionParameters)
-                    .date(Game.currentDay)
+                    .date(game.getCurrentDay())
                     .build();
                 if (nextAmount.compareTo(manufacturer.getBalance()) < 0) {
                     newPayment.setAmount(nextAmount);
@@ -101,30 +101,30 @@ public class PaymentService {
                         amount,
                         paymentProductionParameters.getInterestRateBusinessCredit(),
                         paymentProductionParameters.getTimeToMarket())));
-                    newPayment.setNextDate(Game.currentDay + 2 * paymentProductionParameters.getTimeToMarket());
+                    newPayment.setNextDate(game.getCurrentDay() + 2 * paymentProductionParameters.getTimeToMarket());
                     manufacturer.setBalance(BigDecimal.ZERO);
                 }
                 businessCreditPaymentRepository.save(newPayment);
                 manufacturerRepository.save(manufacturer);
-                StatisticsInfo statisticsInfo = MANUFACTURER_STATISTICS_INFO.get(manufacturer.getId());
+                StatisticsInfo statisticsInfo = statistics.get(manufacturer.getId());
                 statisticsInfo.setRepaidBusinessCreditAmount(statisticsInfo.getRepaidBusinessCreditAmount().add(newPayment.getAmount()));
             }
         }
     }
 
-    private void makeInvestmentCreditPayments(Game game) {
+    private void makeInvestmentCreditPayments(Game game, Map<Long, StatisticsInfo> statistics) {
         var manufacturers = manufacturerService.getGameManufacturers(game.getId());
         List<InvestmentCreditPayment> allPayments = investmentCreditPaymentRepository
             .findAllByManufacturerIdInAndNextDate(manufacturers.stream().map(Manufacturer::getId)
-                .toList(), Game.currentDay);
+                .toList(), game.getCurrentDay());
         for (InvestmentCreditPayment payment : allPayments) {
             var manufacturer = payment.getManufacturer();
             var debt = manufacturer.getInvestmentCreditDebt();
             if (debt.compareTo(BigDecimal.ZERO) > 0) {
                 var newPayment = InvestmentCreditPayment.builder()
                     .manufacturer(manufacturer)
-                    .date(Game.currentDay)
-                    .nextDate(Game.currentDay + MONTH)
+                    .date(game.getCurrentDay())
+                    .nextDate(game.getCurrentDay() + MONTH)
                     .build();
                 var monthlyPrincipalPayment = debt
                     .divide(manufacturer.getInvestmentCreditTermMonths()
@@ -156,7 +156,7 @@ public class PaymentService {
                 }
                 manufacturerRepository.save(manufacturer);
                 investmentCreditPaymentRepository.save(newPayment);
-                StatisticsInfo statisticsInfo = MANUFACTURER_STATISTICS_INFO.get(manufacturer.getId());
+                StatisticsInfo statisticsInfo = statistics.get(manufacturer.getId());
                 statisticsInfo.setRepaidInvestmentCreditAmount(newPayment.getPrincipalPayment().add(newPayment.getInterestAmount()));
             }
         }

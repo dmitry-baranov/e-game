@@ -33,6 +33,24 @@ public class Manufacturer {
 
     private BigDecimal balance;
 
+    @Builder.Default
+    private Integer currentProductCount = 0;
+
+    private String selectedStrategy;
+
+    // Reference values of the chosen course; never applied to production.
+    private Integer selectedCourseProductCount;
+    private BigDecimal selectedCoursePrice;
+    private BigDecimal selectedCourseQuality;
+    private Integer selectedCourseAssortment;
+    private Integer selectedCourseAdvertisingIntensity;
+
+    @Builder.Default
+    private Boolean saveRecommendationHistory = false;
+
+    @Builder.Default
+    private Boolean allowStrategyTraining = false;
+
     private Integer productionCapacityPerDay;
 
     private BigDecimal investmentCreditAmount; //величина инвестиционного кредита(стартоый капитал)

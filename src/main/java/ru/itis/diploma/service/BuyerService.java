@@ -17,11 +17,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 
-import static ru.itis.diploma.service.TradingSessionService.MANUFACTURER_STATISTICS_INFO;
-import static ru.itis.diploma.service.impl.ManufacturerServiceImpl.MANUFACTURER_CURRENT_PRODUCT_COUNT;
-import static ru.itis.diploma.service.impl.ManufacturerServiceImpl.MANUFACTURER_REVENUE;
 
 @Slf4j
 @Service
@@ -33,7 +30,8 @@ public class BuyerService {
 
     private static final Logger logger = LoggerFactory.getLogger(BuyerService.class);
 
-    public void makePurchases(Game game, List<ProductionParameters> productionParametersList) {
+    public void makePurchases(Game game, List<ProductionParameters> productionParametersList,
+                              Map<Long, StatisticsInfo> statistics) {
         updateWornOutFlag(game);
         BigDecimal dailySpendingLimit = game.getDailySpendingLimit();
         int requiredQuantity = game.getPurchaseLimit() - getUnwornProductsCount(game);
@@ -43,7 +41,7 @@ public class BuyerService {
         logger.info("НАЧИНАЮ СОВЕРШАТЬ ПОКУПКИ...");
         for (ProductionParameters productionParameters : productionParametersList) {
             var manufacturer = productionParameters.getManufacturer();
-            var manufacturerCurrentProductCount = MANUFACTURER_CURRENT_PRODUCT_COUNT.get(manufacturer.getId());
+            var manufacturerCurrentProductCount = manufacturer.getCurrentProductCount();
 
             int purchaseQuantity = calculatePurchaseQuantity(dailySpendingLimit, productionParameters.getPrice(),
                 requiredQuantity, manufacturerCurrentProductCount);
@@ -53,19 +51,18 @@ public class BuyerService {
                 .productNumber(purchaseQuantity)
                 .price(productionParameters.getPrice())
                 .qualityIndex(productionParameters.getQualityIndex())
-                .tradeDate(Game.currentDay)
+                .tradeDate(game.getCurrentDay())
                 .isWornOut(false)
                 .build();
             tradingSessionResultsList.add(tradingSessionResults);
-            StatisticsInfo statisticsInfo = MANUFACTURER_STATISTICS_INFO.get(productionParameters.getManufacturer().getId());
+            StatisticsInfo statisticsInfo = statistics.get(manufacturer.getId());
             statisticsInfo.setProductsSold(purchaseQuantity);
             statisticsInfo.setPrice(productionParameters.getPrice());
 
             if (purchaseQuantity > 0) {
                 logger.info("ПОКУПАЮ {} ТОВАРОВ", purchaseQuantity);
                 BigDecimal totalPrice = productionParameters.getPrice().multiply(BigDecimal.valueOf(purchaseQuantity));
-                MANUFACTURER_CURRENT_PRODUCT_COUNT.put(manufacturer.getId(), manufacturerCurrentProductCount - purchaseQuantity);
-                MANUFACTURER_REVENUE.put(manufacturer.getId(), totalPrice);
+                manufacturer.setCurrentProductCount(manufacturerCurrentProductCount - purchaseQuantity);
                 manufacturer.setBalance(manufacturer.getBalance().add(totalPrice));
                 manufacturers.add(manufacturer);
                 requiredQuantity -= purchaseQuantity;
@@ -87,10 +84,9 @@ public class BuyerService {
     }
 
     private void updateWornOutFlag(Game game) {
-        tradingSessionResultsRepository.findAllByProductNumberGreaterThanZero().stream()
-            .filter(t -> Objects.equals(t.getManufacturer().getGame().getId(), game.getId()))
+        tradingSessionResultsRepository.findUnwornPurchasesByGameId(game.getId()).stream()
             .forEach(t -> {
-                var usageDays = Game.currentDay - t.getTradeDate();
+                var usageDays = game.getCurrentDay() - t.getTradeDate();
                 var productLifetime = t.getQualityIndex().multiply(BigDecimal.valueOf(game.getAbsoluteQualityProductLife()));
                 if (BigDecimal.valueOf(usageDays).compareTo(productLifetime) >= 0) {
                     t.setIsWornOut(true);

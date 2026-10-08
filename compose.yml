@@ -23,11 +23,28 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/diploma
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      STRATEGY_PREDICTOR_URL: http://ml:8090
+      STRATEGY_LLM_URL: ${STRATEGY_LLM_URL:-}
+      STRATEGY_LLM_MODEL: ${STRATEGY_LLM_MODEL:-}
+      STRATEGY_LLM_KEY: ${STRATEGY_LLM_KEY:-}
     ports:
       - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
 
+  ml:
+    build:
+      context: .
+      dockerfile: ml/Dockerfile
+    environment:
+      STRATEGY_DATABASE_URL: postgresql://postgres:postgres@db:5432/diploma
+    volumes:
+      - strategy_models:/app/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  strategy_models:

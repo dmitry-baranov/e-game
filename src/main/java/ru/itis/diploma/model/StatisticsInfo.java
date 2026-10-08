@@ -36,6 +36,8 @@ public class StatisticsInfo {
 
     private Integer productsProduced; //количество произведенного товаров
 
+    private Integer productsInStock;
+
     private BigDecimal paidTaxesAmount; //выплаченные налоги
 
     private BigDecimal repaidInvestmentCreditAmount; //выплаченные кредиты

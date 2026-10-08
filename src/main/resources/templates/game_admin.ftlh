@@ -74,11 +74,12 @@
             <div class="col-4">
                 <p>Налог с продаж - ${game.salesTax}%</p>
                 <p>Процентная ставка инвестиционного кредита - ${game.interestRateInvestmentCredit}%</p>
-                <p>Срок инвестиционного кредита - ${game.interestRateInvestmentCredit} мес</p>
-                <p>Процентная ставка оборотного кредита - ${game.interestRateInvestmentCredit}%</p>
+                <p>Срок инвестиционного кредита - ${game.investmentCreditTermMonths} мес</p>
+                <p>Процентная ставка оборотного кредита - ${game.interestRateBusinessCredit}%</p>
             </div>
         </div>
         <#if game.status != 'FINISHED'>
+            <p>Торговый день: ${game.currentDay}. <#if !startedTradingSessions>Таймер на паузе; для продолжения нажмите «Запустить торговые сессии».</#if></p>
             <div class="col-md-12" style="margin-top: 50px">
                 <h2>Данные производителей:</h2>
                 <div class="table-responsive" style="height: 400px">

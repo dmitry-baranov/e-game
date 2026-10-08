@@ -4,6 +4,7 @@ import ru.itis.diploma.dto.CreateGameDto;
 import ru.itis.diploma.dto.GameDto;
 import ru.itis.diploma.model.Game;
 import ru.itis.diploma.model.GameResult;
+import ru.itis.diploma.model.enums.GameStatus;
 
 import java.util.List;
 
@@ -18,6 +19,8 @@ public interface GameService {
     List<GameDto> getAllGames();
 
     Game save(Game game);
+
+    void setStatus(Long gameId, GameStatus status);
 
     void finishGame(Long id);
 
