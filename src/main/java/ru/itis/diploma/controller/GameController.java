@@ -1,6 +1,8 @@
 package ru.itis.diploma.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -33,6 +35,8 @@ public class GameController {
     private final AccountService accountService;
     private final TradingSessionController tradingSessionController;
     private final StrategySnapshotService strategySnapshotService;
+    private final JdbcTemplate jdbc;
+    @Value("${experiment.enabled:false}") private boolean experimentEnabled;
 
     @GetMapping("/game")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -61,6 +65,7 @@ public class GameController {
                               Model model) {
         var game = gameService.getGameById(id);
         model.addAttribute("game", game);
+        model.addAttribute("experimentEnabled", experimentEnabled);
         AccountDto account = accountService.getByEmail(userDetails.getUsername());
         model.addAttribute("account", account);
 
@@ -69,6 +74,10 @@ public class GameController {
         }
 
         if (Account.Role.ADMIN.equals(userDetails.getAccount().getRole())) {
+            if (experimentEnabled) {
+                var runIds = jdbc.queryForList("SELECT id FROM experiment_run WHERE game_id=? LIMIT 1", Long.class, id);
+                if (!runIds.isEmpty()) model.addAttribute("experimentRunId", runIds.get(0));
+            }
             model.addAttribute("startedTradingSessions", tradingSessionController.isRunning(id));
             model.addAttribute("manufacturers", manufacturerService.getGameManufacturers(id));
             return "game_admin";

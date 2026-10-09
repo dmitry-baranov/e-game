@@ -9,7 +9,7 @@ import ru.itis.diploma.repository.AccountRepository;
 import ru.itis.diploma.service.SignUpService;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 @Service
 @RequiredArgsConstructor

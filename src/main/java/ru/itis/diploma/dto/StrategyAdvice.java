@@ -15,6 +15,9 @@ public class StrategyAdvice {
     private String selectedStrategy;
     private String courseMismatch;
     private String aiExplanation;
+    /** Diagnostic for the experiment, not a generated explanation or a prediction. */
+    @JsonIgnore
+    private String modelFallbackReason;
     private Long historyId;
     private List<Card> recommendations;
     private List<ModelOpinion> modelOpinions;

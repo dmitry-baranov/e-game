@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class StrategyTemplateTest {
     @Test
@@ -55,11 +56,18 @@ class StrategyTemplateTest {
             BigDecimal.TEN, 0, 1, List.of(), List.of(),
             List.of(new StrategySnapshot.Payment(30, BigDecimal.TEN, "Оборотный кредит")), null);
         var writer = new StringWriter();
-        config.getTemplate("game.ftlh").process(Map.of("game", game, "account", Account.builder().id(2L).build(),
+        var model = new HashMap<String, Object>(Map.of("game", game, "account", Account.builder().id(2L).build(),
             "manufacturer", Manufacturer.builder().id(3L).build(), "productionParameters", List.of(),
             "gameResults", List.of(), "ownSnapshot", snapshot,
-            "dailySales", List.of(new StrategySnapshot.Sale(1, 5, 10, 5))), writer);
+            "dailySales", List.of(new StrategySnapshot.Sale(1, 5, 10, 5))));
+        model.put("experimentEnabled", false);
+        config.getTemplate("game.ftlh").process(model, writer);
         assertTrue(writer.toString().contains("Сейчас на складе: 5"));
         assertTrue(writer.toString().contains("Оборотный кредит"));
+        assertTrue(writer.toString().contains("/game/1/analysis"));
+        model.put("experimentEnabled", true);
+        writer = new StringWriter();
+        config.getTemplate("game.ftlh").process(model, writer);
+        assertFalse(writer.toString().contains("/game/1/analysis"));
     }
 }

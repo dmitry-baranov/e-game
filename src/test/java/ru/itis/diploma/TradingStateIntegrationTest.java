@@ -16,7 +16,7 @@ import ru.itis.diploma.dto.InitialProductionParameters;
 import ru.itis.diploma.service.ManufacturerService;
 import java.util.UUID;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +36,31 @@ class TradingStateIntegrationTest {
     @Autowired private StrategyTrainingEpisodeRepository trainingEpisodes;
     @Autowired private ManufacturerService manufacturerService;
     @Autowired private EntityManager entityManager;
+    @Autowired private TradingSessionResultsRepository purchases;
+
+    @Test
+    @Transactional
+    void wornOutPurchasesAreUpdatedAtBoundaryOnlyWithinTheirGame() {
+        var first = games.save(Game.builder().name("Wear A").status(GameStatus.STARTED).currentDay(10).build());
+        var second = games.save(Game.builder().name("Wear B").status(GameStatus.STARTED).currentDay(10).build());
+        var owner = manufacturers.save(Manufacturer.builder().game(first).build());
+        var other = manufacturers.save(Manufacturer.builder().game(second).build());
+        var expired = purchases.save(TradingSessionResults.builder().manufacturer(owner).tradeDate(0)
+            .productNumber(1).qualityIndex(BigDecimal.ONE).isWornOut(false).build());
+        var fresh = purchases.save(TradingSessionResults.builder().manufacturer(owner).tradeDate(1)
+            .productNumber(1).qualityIndex(BigDecimal.ONE).isWornOut(false).build());
+        var zero = purchases.save(TradingSessionResults.builder().manufacturer(owner).tradeDate(0)
+            .productNumber(0).qualityIndex(BigDecimal.ONE).isWornOut(false).build());
+        var foreign = purchases.save(TradingSessionResults.builder().manufacturer(other).tradeDate(0)
+            .productNumber(1).qualityIndex(BigDecimal.ONE).isWornOut(false).build());
+        entityManager.flush(); entityManager.clear();
+        assertEquals(1, purchases.markWornOutByGameId(first.getId(), 10, 10));
+        entityManager.flush(); entityManager.clear();
+        assertTrue(purchases.findById(expired.getId()).orElseThrow().getIsWornOut());
+        assertFalse(purchases.findById(fresh.getId()).orElseThrow().getIsWornOut());
+        assertFalse(purchases.findById(zero.getId()).orElseThrow().getIsWornOut());
+        assertFalse(purchases.findById(foreign.getId()).orElseThrow().getIsWornOut());
+    }
 
     @Test
     @Transactional
@@ -53,7 +78,7 @@ class TradingStateIntegrationTest {
         action.setPrice(BigDecimal.TEN); action.setQualityIndex(BigDecimal.ONE);
         action.setAssortment(1); action.setAdvertisingIntensityIndex(0); action.setAdvertisingDays(0);
         manufacturerService.defineInitialProductionParameters(action, account.getId(), game);
-        assertEquals(0, trainingEpisodes.count());
+        assertEquals(0, trainingEpisodes.countByManufacturerId(owner.getId()));
 
         // Independent of recommendation history; an opted-in player starts a new game.
         var game2 = games.save(Game.builder().name("ML2").status(GameStatus.CREATED).currentDay(0)
@@ -64,14 +89,15 @@ class TradingStateIntegrationTest {
         var opted = manufacturers.save(Manufacturer.builder().game(game2).account(account)
             .allowStrategyTraining(true).saveRecommendationHistory(false).currentProductCount(0).build());
         manufacturerService.defineInitialProductionParameters(action, account.getId(), game2);
-        var saved = trainingEpisodes.findAll();
+        var saved = trainingEpisodes.findAll().stream()
+            .filter(e -> e.getManufacturer().getId().equals(opted.getId())).toList();
         assertEquals(1, saved.size());
         assertFalse(saved.get(0).getSnapshotJson().contains("purchaseLimit"));
         assertTrue(saved.get(0).getSnapshotJson().contains("\"opened\":false"));
         assertFalse(saved.get(0).getActionJson().contains("account"));
         strategyService.trainingPreference(game2.getId(), account.getId(), false);
         entityManager.flush(); entityManager.clear();
-        assertEquals(0, trainingEpisodes.count());
+        assertEquals(0, trainingEpisodes.countByManufacturerId(opted.getId()));
         assertFalse(manufacturers.findById(opted.getId()).orElseThrow().getAllowStrategyTraining());
         assertTrue(recommendations.findByManufacturerIdOrderByCreatedAtDesc(opted.getId()).isEmpty());
     }

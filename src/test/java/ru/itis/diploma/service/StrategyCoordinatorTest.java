@@ -63,6 +63,17 @@ class StrategyCoordinatorTest {
     }
 
     @Test
+    void outOfTrainingRangeKeepsRuleCardsAndExplainsAbstention() {
+        StrategyPredictor predictor = (state, cards) -> Optional.of(new StrategyPredictor.Predictions(
+            "CatBoost", "v2", java.util.Arrays.asList(null, null, null), List.of(),
+            List.of("OUTSIDE_TRAIN_RANGE", "OUTSIDE_TRAIN_RANGE", "OUTSIDE_TRAIN_RANGE")));
+        var advice = new StrategyCoordinator(new StrategyMarketAgent(), new StrategyProductionAgent(),
+            new StrategyFinancialAgent(), predictor).recommend(snapshot(7, new BigDecimal("100"), List.of()), null);
+        assertEquals("OUTSIDE_TRAIN_RANGE", advice.getModelFallbackReason());
+        assertTrue(advice.getRecommendations().stream().allMatch(c -> "RULES".equals(c.getSource())));
+    }
+
+    @Test
     void competingModelsCanRecommendDifferentAlreadyValidatedCards() {
         StrategyPredictor predictor = (state, cards) -> Optional.of(new StrategyPredictor.Predictions(
             "CatBoost", "v1", List.of(new StrategyPredictor.Estimate(2, 5, 8),

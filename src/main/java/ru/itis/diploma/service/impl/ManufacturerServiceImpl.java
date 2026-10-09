@@ -26,7 +26,7 @@ import ru.itis.diploma.service.ManufacturerService;
 import ru.itis.diploma.service.PaymentService;
 import ru.itis.diploma.service.StrategyTrainingCapture;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
@@ -52,14 +52,12 @@ public class ManufacturerServiceImpl implements ManufacturerService {
 
     @Override
     public Optional<ProductionParameters> getLastProductionParameters(Long manufacturerId) {
-        return productionParametersRepository.findByManufacturerId(manufacturerId).stream()
-            .max(Comparator.comparingInt(ProductionParameters::getStartDate));
+        return productionParametersRepository.findFirstByManufacturerIdOrderByStartDateDescIdDesc(manufacturerId);
     }
 
     @Override
     public Optional<Advertisement> getLastAdvertisement(Long manufacturerId) {
-        return advertisementRepository.findByManufacturerId(manufacturerId).stream()
-            .max(Comparator.comparingInt(Advertisement::getStartDate));
+        return advertisementRepository.findFirstByManufacturerIdOrderByStartDateDescIdDesc(manufacturerId);
     }
 
     @Override

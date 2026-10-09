@@ -78,6 +78,11 @@
                 <p>Процентная ставка оборотного кредита - ${game.interestRateBusinessCredit}%</p>
             </div>
         </div>
+        <#if experimentEnabled && experimentRunId??>
+            <p><a href="/admin/bot-analytics/runs/${experimentRunId?c}?from=game">Разбор игры ботов</a></p>
+        <#elseif !experimentEnabled && game.status == 'FINISHED'>
+            <p><a href="/game/${game.id?c}/analysis">Разбор завершённой игры</a></p>
+        </#if>
         <#if game.status != 'FINISHED'>
             <p>Торговый день: ${game.currentDay}. <#if !startedTradingSessions>Таймер на паузе; для продолжения нажмите «Запустить торговые сессии».</#if></p>
             <div class="col-md-12" style="margin-top: 50px">

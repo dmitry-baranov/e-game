@@ -3,6 +3,7 @@ import os
 import json
 import threading
 import time
+import uuid
 
 import joblib
 from flask import Flask, jsonify, request
@@ -61,6 +62,37 @@ def training_report():
         return jsonify(json.load(file))
 
 
+@app.get("/training-runs")
+def training_runs():
+    if os.environ.get("STRATEGY_DATASET") != "experiment":
+        return jsonify({"error": "only available for isolated experiments"}), 403
+    directory = ARTIFACT.parent / "training-runs"
+    if not directory.exists():
+        return jsonify([])
+    reports = []
+    for path in sorted(directory.glob("*.json"), reverse=True)[:100]:
+        with path.open(encoding="utf-8") as file:
+            report = json.load(file)
+        reports.append({key: report.get(key) for key in
+                        ("training_run_id", "created_at", "status", "games", "cycles", "champion", "version")})
+    return jsonify(sorted(reports, key=lambda r: r["created_at"], reverse=True))
+
+
+@app.get("/training-runs/<run_id>")
+def training_run(run_id):
+    if os.environ.get("STRATEGY_DATASET") != "experiment":
+        return jsonify({"error": "only available for isolated experiments"}), 403
+    try:
+        run_id = str(uuid.UUID(run_id))
+    except ValueError:
+        return jsonify({"error": "invalid run id"}), 400
+    path = ARTIFACT.parent / "training-runs" / (run_id + ".json")
+    if not path.exists():
+        return jsonify({"error": "not found"}), 404
+    with path.open(encoding="utf-8") as file:
+        return jsonify(json.load(file))
+
+
 @app.post("/predict")
 def predict():
     model = artifact()
@@ -70,6 +102,7 @@ def predict():
     if not isinstance(payload, dict) or not isinstance(payload.get("plans"), list) or len(payload["plans"]) > 10:
         return jsonify({"error": "invalid request"}), 400
     output = []
+    reasons = []
     comparisons = [{"name": challenger["name"], "version": model["version"], "predictions": []}
                    for challenger in model.get("challengers", [])]
     try:
@@ -81,6 +114,7 @@ def predict():
                     and model["quality_range"][0] <= vector[2] <= model["quality_range"][1]
                     and model["ads_range"][0] <= vector[4] <= model["ads_range"][1]):
                 output.append(None)
+                reasons.append("OUTSIDE_TRAIN_RANGE")
                 for comparison in comparisons:
                     comparison["predictions"].append(None)
                 continue
@@ -90,6 +124,7 @@ def predict():
             typical = min(supply, round(estimate))
             high = min(supply, max(typical, round(estimate + model["error90"])))
             output.append({"low": low, "typical": typical, "high": high})
+            reasons.append(None)
             for challenger, comparison in zip(model.get("challengers", []), comparisons):
                 value = max(0, float(challenger["model"].predict([vector])[0]))
                 comparison["predictions"].append({"low": min(supply, max(0, round(value - challenger["error90"]))),
@@ -98,7 +133,7 @@ def predict():
     except (KeyError, TypeError, ValueError, OverflowError):
         return jsonify({"error": "invalid features"}), 400
     return jsonify({"source": "MODEL", "name": model["name"], "version": model["version"],
-                    "predictions": output, "comparisons": comparisons})
+                    "predictions": output, "reasons": reasons, "comparisons": comparisons})
 
 
 def retrain_periodically():

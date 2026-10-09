@@ -2,11 +2,12 @@ package ru.itis.diploma.experiment;
 
 import lombok.Getter;
 import lombok.Setter;
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity @Getter @Setter
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"series_id", "number"}))
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"series_id", "number"}),
+       indexes = @Index(columnList = "game_id"))
 public class ExperimentRun {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

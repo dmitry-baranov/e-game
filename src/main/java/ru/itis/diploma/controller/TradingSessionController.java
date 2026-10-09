@@ -40,8 +40,7 @@ public class TradingSessionController {
             gameService.setStatus(gameId, GameStatus.STARTED);
 
             PeriodicTrigger trigger = new PeriodicTrigger(game.getTimeUnit(), TimeUnit.MINUTES);
-            scheduledTasks.put(gameId, taskScheduler.schedule(() ->
-                tradingSessionService.doDaysActivities(gameService.getGameById(gameId)), trigger));
+            scheduledTasks.put(gameId, taskScheduler.schedule(() -> runGameDay(gameId), trigger));
         }
         return "redirect:/game/" + gameId;
     }
@@ -55,6 +54,19 @@ public class TradingSessionController {
         }
         gameService.setStatus(gameId, GameStatus.STOPPED);
         return "redirect:/game/" + gameId;
+    }
+
+    private void runGameDay(Long gameId) {
+        var game = gameService.getGameById(gameId);
+        if (game.getStatus() == GameStatus.FINISHED) {
+            synchronized (this) {
+                var task = scheduledTasks.remove(gameId);
+                if (task != null) task.cancel(false);
+            }
+            return;
+        }
+        if (game.getStatus() != GameStatus.STARTED) return;
+        tradingSessionService.doDaysActivities(game);
     }
 
 }

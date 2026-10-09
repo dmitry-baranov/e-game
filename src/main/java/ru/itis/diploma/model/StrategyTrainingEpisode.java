@@ -2,10 +2,11 @@ package ru.itis.diploma.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 /** Immutable pre-decision view and the action actually taken; labels come from later trade statistics. */
 @Entity
+@Table(indexes = @Index(columnList = "manufacturer_id,decisionDay"))
 @Getter @Setter
 public class StrategyTrainingEpisode {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

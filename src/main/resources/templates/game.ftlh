@@ -70,6 +70,7 @@
              aria-labelledby="tab1-tab">
             <div class="row justify-content-center" style="margin-left: 50px; margin-right: 50px">
                 <#if game.status == 'FINISHED'>
+                    <#if !experimentEnabled><p><a href="/game/${game.id?c}/analysis">Разбор моей завершённой игры</a></p></#if>
                     <div class="col-6 d-flex justify-content-center">
                         <div id="game_results" class="align-self-center image-container">
                             <img width="580" height="430"

@@ -13,7 +13,7 @@ public class ExperimentConfig {
     private long seed = 42;
     private int maxAttempts = 0;
     private String mode = "COLLECT";
-    private String policyMix = "CAUTIOUS,PRICE,QUALITY,STOCK,EXPLORE,RULES";
+    private String policyMix = String.join(",", BotPolicies.NAMES);
     private String marketMix = "BUDGET,COMPETITIVE,ADVERTISING";
 
     public String[] policies() { return java.util.Arrays.stream(policyMix.split(",", -1)).map(String::trim).toArray(String[]::new); }
@@ -27,7 +27,7 @@ public class ExperimentConfig {
             maxAttempts < target || maxAttempts > 30000 ||
             !("COLLECT".equals(mode) || "EVALUATE".equals(mode)) ||
             ("EVALUATE".equals(mode) && (target % 2 != 0 || maxAttempts % 2 != 0)) ||
-            policyMix == null || marketMix == null || policyMix.length() > 200 || marketMix.length() > 100)
+            policyMix == null || marketMix == null || policyMix.length() > 1200 || marketMix.length() > 100)
             throw new IllegalArgumentException("Некорректные пределы серии (проверьте также лимит попыток)");
         if (policies().length == 0 || markets().length == 0 ||
             java.util.Arrays.stream(policies()).anyMatch(p ->

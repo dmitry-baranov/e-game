@@ -9,4 +9,5 @@ public interface ExperimentRunRepository extends JpaRepository<ExperimentRun, Lo
     long countBySeriesIdAndStatus(Long seriesId, String status);
     long countBySeriesModeAndStatus(String mode, String status);
     Optional<ExperimentRun> findBySeriesIdAndNumber(Long seriesId, int number);
+    Optional<ExperimentRun> findFirstBySeriesIdAndStatusOrderByNumberDesc(Long seriesId, String status);
 }

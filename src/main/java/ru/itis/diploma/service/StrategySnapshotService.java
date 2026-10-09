@@ -3,6 +3,7 @@ package ru.itis.diploma.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itis.diploma.dto.StrategySnapshot;
 import ru.itis.diploma.model.BusinessCreditPayment;
@@ -14,7 +15,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -36,19 +39,42 @@ public class StrategySnapshotService {
 
     @Transactional(readOnly = true)
     public StrategySnapshot snapshot(Long gameId, Long accountId) {
+        return snapshot(gameId, accountId, null);
+    }
+
+    /** Public competitor attributes are shared across a game's pre-decision snapshots. */
+    @Transactional(readOnly = true)
+    public Map<Long, StrategySnapshot.Competitor> visibleCompetitors(List<Manufacturer> players) {
+        Map<Long, StrategySnapshot.Competitor> visible = new LinkedHashMap<>();
+        for (Manufacturer player : players) {
+            if (!player.isEnteredInitialProductionParameters()) continue;
+            var last = productions.findFirstByManufacturerIdOrderByStartDateDescIdDesc(player.getId()).orElse(null);
+            if (last == null || last.getPrice() == null) continue;
+            var ad = advertisements.findByManufacturerIdAndStartDate(player.getId(), last.getStartDate() + 1);
+            visible.put(player.getId(), new StrategySnapshot.Competitor(last.getPrice(), last.getQualityIndex(),
+                last.getAssortment(), ad.map(a -> a.getIntensityIndex()).orElse(0)));
+        }
+        return visible;
+    }
+
+    @Transactional(readOnly = true)
+    public StrategySnapshot snapshot(Long gameId, Long accountId,
+                                     Map<Long, StrategySnapshot.Competitor> visibleCompetitors) {
         Manufacturer own = owner(gameId, accountId);
         var game = own.getGame();
-        var last = productions.findByManufacturerId(own.getId()).stream()
-            .max(Comparator.comparingInt(p -> p.getStartDate())).orElse(null);
-        var ad = advertisements.findByManufacturerId(own.getId()).stream()
-            .max(Comparator.comparingInt(a -> a.getStartDate())).orElse(null);
-        List<StrategySnapshot.Sale> sales = statistics.findByManufacturerIdOrderByTradeDateDesc(own.getId())
-            .stream().limit(7).map(s -> new StrategySnapshot.Sale(s.getTradeDate(), s.getProductsSold(),
+        var last = productions.findFirstByManufacturerIdOrderByStartDateDescIdDesc(own.getId()).orElse(null);
+        var ad = advertisements.findFirstByManufacturerIdOrderByStartDateDescIdDesc(own.getId()).orElse(null);
+        List<StrategySnapshot.Sale> sales = statistics.findByManufacturerIdOrderByTradeDateDesc(
+                own.getId(), PageRequest.of(0, 7))
+            .stream().map(s -> new StrategySnapshot.Sale(s.getTradeDate(), s.getProductsSold(),
                 s.getProductsProduced(), s.getProductsInStock())).toList();
-        List<StrategySnapshot.Competitor> competitors = manufacturerService.getCompetitorsData(own.getId()).stream()
-            .filter(p -> p.getPrice() != null)
-            .map(p -> new StrategySnapshot.Competitor(p.getPrice(), p.getQualityIndex(),
-                p.getAssortment(), p.getAdvertisingIntensityIndex())).toList();
+        List<StrategySnapshot.Competitor> competitors = visibleCompetitors == null ?
+            manufacturerService.getCompetitorsData(own.getId()).stream()
+                .filter(p -> p.getPrice() != null)
+                .map(p -> new StrategySnapshot.Competitor(p.getPrice(), p.getQualityIndex(),
+                    p.getAssortment(), p.getAdvertisingIntensityIndex())).toList() :
+            visibleCompetitors.entrySet().stream().filter(e -> !e.getKey().equals(own.getId()))
+                .map(Map.Entry::getValue).toList();
         return new StrategySnapshot(gameId, game.getCurrentDay(), own.isEnteredInitialProductionParameters(),
             own.getBalance(), own.getCurrentProductCount(), game.getBaseCostPrice(), game.getBaseAdvertisementPrice(),
             game.getProductPower(), game.getSalesTax(), game.getInterestRateInvestmentCredit(),

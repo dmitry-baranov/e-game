@@ -8,7 +8,6 @@ import ru.itis.diploma.model.Game;
 import ru.itis.diploma.model.Manufacturer;
 import ru.itis.diploma.model.ProductionParameters;
 import ru.itis.diploma.model.StatisticsInfo;
-import ru.itis.diploma.model.TradingSessionResults;
 import ru.itis.diploma.repository.StatisticsInfoRepository;
 import ru.itis.diploma.repository.GameRepository;
 import ru.itis.diploma.model.enums.GameStatus;
@@ -21,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -107,11 +105,11 @@ public class TradingSessionService {
 
     public Map<Long, Integer> getPurchaseCountsByManufacturerId(List<Long> manufacturerIds, int habitTrackingDays, int currentDay) {
         int startDate = currentDay - habitTrackingDays > 0 ? currentDay - habitTrackingDays : 1;
-        List<TradingSessionResults> recentPurchases = tradingSessionResultsRepository
-            .findByTradeDateGreaterThanEqualAndManufacturerIdIn(startDate, manufacturerIds);
-        return recentPurchases.stream()
-            .collect(Collectors.groupingBy(tr -> tr.getManufacturer().getId(),
-                Collectors.summingInt(TradingSessionResults::getProductNumber)));
+        Map<Long, Integer> counts = new HashMap<>();
+        if (manufacturerIds.isEmpty()) return counts;
+        for (Object[] row : tradingSessionResultsRepository.sumProductsByManufacturerSince(startDate, manufacturerIds))
+            counts.put((Long) row[0], Math.toIntExact((Long) row[1]));
+        return counts;
     }
 
     private double calculateValue(Game game, ProductionParameters productionParameters, int manufacturerPurchaseCounts) {

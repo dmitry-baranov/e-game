@@ -23,10 +23,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/diploma
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: "false"
       STRATEGY_PREDICTOR_URL: http://ml:8090
       STRATEGY_LLM_URL: ${STRATEGY_LLM_URL:-}
       STRATEGY_LLM_MODEL: ${STRATEGY_LLM_MODEL:-}
       STRATEGY_LLM_KEY: ${STRATEGY_LLM_KEY:-}
+      STRATEGY_LLM_PROVIDER: ${STRATEGY_LLM_PROVIDER:-openai}
     ports:
       - "8080:8080"
     depends_on:

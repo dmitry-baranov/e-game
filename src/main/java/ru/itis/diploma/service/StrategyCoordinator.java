@@ -71,7 +71,8 @@ public class StrategyCoordinator {
         }
         List<StrategyAdvice.Card> available = cards.stream().filter(c -> c != null).limit(3).toList();
         List<StrategyAdvice.Card> candidates = available;
-        predictor.predict(snapshot, candidates).ifPresent(predictions -> {
+        var predicted = predictor.predict(snapshot, candidates);
+        predicted.ifPresent(predictions -> {
             for (int i = 0; i < candidates.size(); i++) {
                 var estimate = predictions.estimates().get(i);
                 if (estimate == null) continue;
@@ -118,6 +119,14 @@ public class StrategyCoordinator {
                 result.setModelOpinions(opinions);
             }
         });
+        if (snapshot.opened() && available.size() > 1 &&
+            available.stream().anyMatch(c -> !"MODEL".equals(c.getSource()) || c.getLowCash() == null)) {
+            if (predicted.isEmpty()) result.setModelFallbackReason("PREDICTOR_UNAVAILABLE_OR_INVALID");
+            else if (predicted.get().reasons() != null &&
+                predicted.get().reasons().contains("OUTSIDE_TRAIN_RANGE"))
+                result.setModelFallbackReason("OUTSIDE_TRAIN_RANGE");
+            else result.setModelFallbackReason("INCOMPLETE_MODEL_ESTIMATES");
+        }
         // Rank only comparable, validated estimates. If unavailable, retain the existing rule order.
         if (available.size() > 1 && available.stream().allMatch(c -> "MODEL".equals(c.getSource()) && c.getLowCash() != null) &&
             personal == null) {

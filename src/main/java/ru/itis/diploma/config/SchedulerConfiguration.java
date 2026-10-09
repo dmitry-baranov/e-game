@@ -12,7 +12,8 @@ public class SchedulerConfiguration {
     @Bean
     public TaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-        taskScheduler.setPoolSize(1);
+        taskScheduler.setPoolSize(10);
+        taskScheduler.setThreadNamePrefix("game-day-");
         taskScheduler.initialize();
         return taskScheduler;
     }

@@ -24,6 +24,8 @@ public class ExperimentController {
     @GetMapping
     public String page(Model model) {
         model.addAttribute("config", new ExperimentConfig());
+        model.addAttribute("policyNames", BotPolicies.NAMES);
+        model.addAttribute("policyDescriptions", BotPolicies.DESCRIPTIONS);
         return "bot_experiments";
     }
 
@@ -40,7 +42,9 @@ public class ExperimentController {
             var s = scenarios.generate(config, i);
             var chosen = java.util.stream.IntStream.range(0, s.bots())
                 .mapToObj(bot -> bot == 0 && "EVALUATE".equals(config.getMode()) ?
-                    (i % 2 == 1 ? "EVAL_RULES" : "MODEL") : config.policies()[bot % config.policies().length])
+                    (i % 2 == 1 ? "EVAL_RULES" : "MODEL") : config.policies()[(
+                        ("EVALUATE".equals(config.getMode()) ? (i - 1) / 2 + bot - 1 : i - 1 + bot)
+                        + config.policies().length) % config.policies().length])
                 .collect(java.util.stream.Collectors.groupingBy(p -> p, java.util.LinkedHashMap::new,
                     java.util.stream.Collectors.counting()));
             return new Preview(i, Long.toString(s.seed()), s.market(), s.bots(), s.horizon(),
@@ -54,6 +58,8 @@ public class ExperimentController {
         try { return "redirect:/admin/bot-experiments/" + manager.create(config).getId(); }
         catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage()); model.addAttribute("config", config);
+            model.addAttribute("policyNames", BotPolicies.NAMES);
+            model.addAttribute("policyDescriptions", BotPolicies.DESCRIPTIONS);
             return "bot_experiments";
         }
     }
@@ -82,7 +88,7 @@ public class ExperimentController {
             runs.stream().filter(r -> "QUEUED".equals(r.getStatus())).count(),
             runs.stream().filter(r -> "INCOMPLETE".equals(r.getStatus())).count(),
             runs.stream().mapToLong(ExperimentRun::getCompletedDays).sum(), etaSeconds,
-            runs.stream().limit(100).map(r -> new Run(r.getNumber(), r.getStatus(), Long.toString(r.getSeed()),
+            runs.stream().limit(100).map(r -> new Run(r.getId(), r.getNumber(), r.getStatus(), Long.toString(r.getSeed()),
                 r.getMarket(), r.getBots(), r.getHorizon(), r.getCompletedDays(), r.getCycles(),
                 r.getBestResult() == null ? null : r.getBestResult().toString(), r.getError(),
                 r.getModelDecisions(), r.getModelFallbacks(), r.getAttempts(),
@@ -124,7 +130,7 @@ public class ExperimentController {
     public record Preview(int number, String seed, String market, int bots, int horizon,
                           String baseCost, int purchaseLimit, String dailyBudget, String policies) {}
     public record SeriesItem(long id, String status, String mode) {}
-    public record Run(int number, String status, String seed, String market, int bots, int horizon,
+    public record Run(long id, int number, String status, String seed, String market, int bots, int horizon,
                       int days, int cycles, String bestResult, String error, int modelDecisions, int modelFallbacks,
                       int attempts, int stockSkips, int creditSkips) {}
     public record Status(String state, String config, String modelVersion, String generatorVersion, String policyVersion,

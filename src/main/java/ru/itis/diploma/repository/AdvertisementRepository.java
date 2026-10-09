@@ -10,6 +10,8 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
 
     List<Advertisement> findByManufacturerId(Long manufacturerId);
 
+    Optional<Advertisement> findFirstByManufacturerIdOrderByStartDateDescIdDesc(Long manufacturerId);
+
     Optional<Advertisement> findByManufacturerIdAndStartDate(Long manufacturerId, Integer startDate);
 
 }

@@ -84,15 +84,8 @@ public class BuyerService {
     }
 
     private void updateWornOutFlag(Game game) {
-        tradingSessionResultsRepository.findUnwornPurchasesByGameId(game.getId()).stream()
-            .forEach(t -> {
-                var usageDays = game.getCurrentDay() - t.getTradeDate();
-                var productLifetime = t.getQualityIndex().multiply(BigDecimal.valueOf(game.getAbsoluteQualityProductLife()));
-                if (BigDecimal.valueOf(usageDays).compareTo(productLifetime) >= 0) {
-                    t.setIsWornOut(true);
-                    tradingSessionResultsRepository.save(t);
-                }
-            });
+        tradingSessionResultsRepository.markWornOutByGameId(game.getId(), game.getCurrentDay(),
+            game.getAbsoluteQualityProductLife());
     }
 
     private Integer getUnwornProductsCount(Game game) {

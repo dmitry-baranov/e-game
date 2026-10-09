@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import ru.itis.diploma.dto.SignUpForm;
 import ru.itis.diploma.service.SignUpService;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("/sign-up")

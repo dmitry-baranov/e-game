@@ -21,7 +21,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://experiment-db:5432/experiments
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       EXPERIMENT_ENABLED: "true"
+      EXPERIMENT_VIRTUAL_THREADS: ${EXPERIMENT_VIRTUAL_THREADS:-true}
       SPRING_JPA_SHOW_SQL: "false"
       SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "false"
       LOGGING_LEVEL_RU_ITIS_DIPLOMA_SERVICE: WARN
@@ -38,8 +40,10 @@ services:
       dockerfile: ml/Dockerfile
     environment:
       STRATEGY_DATABASE_URL: postgresql://postgres:postgres@experiment-db:5432/experiments
+      STRATEGY_REPORT_DATABASE_URL: postgresql://postgres:postgres@experiment-db:5432/experiments
       STRATEGY_DATASET: experiment
       STRATEGY_AUTO_TRAIN: "false"
+      STRATEGY_CODE_VERSION: ${STRATEGY_CODE_VERSION:-нет данных}
     volumes:
       - experiment_models:/app/artifacts
     depends_on:

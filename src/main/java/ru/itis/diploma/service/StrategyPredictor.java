@@ -10,9 +10,13 @@ public interface StrategyPredictor {
     record Estimate(int low, int typical, int high) {}
     record Comparison(String name, String version, @JsonProperty("predictions") List<Estimate> estimates) {}
     record Predictions(String name, String version, @JsonProperty("predictions") List<Estimate> estimates,
-                       List<Comparison> comparisons) {
+                       List<Comparison> comparisons, List<String> reasons) {
         public Predictions(String name, String version, List<Estimate> estimates) {
-            this(name, version, estimates, List.of());
+            this(name, version, estimates, List.of(), List.of());
+        }
+        public Predictions(String name, String version, List<Estimate> estimates,
+                           List<Comparison> comparisons) {
+            this(name, version, estimates, comparisons, List.of());
         }
     }
 
