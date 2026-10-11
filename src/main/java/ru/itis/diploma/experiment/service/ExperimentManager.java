@@ -6,6 +6,7 @@ import ru.itis.diploma.experiment.model.ExperimentRun;
 import ru.itis.diploma.experiment.model.ExperimentSeries;
 import ru.itis.diploma.experiment.repository.ExperimentRunRepository;
 import ru.itis.diploma.experiment.repository.ExperimentSeriesRepository;
+import ru.itis.diploma.experiment.repository.ExperimentPairRepository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 public class ExperimentManager {
     private final ExperimentSeriesRepository series;
     private final ExperimentRunRepository runs;
+    private final ExperimentPairRepository pairs;
     private final ExperimentEngine engine;
     private final TransactionTemplate transactions;
     private final ObjectMapper mapper;
@@ -67,11 +69,7 @@ public class ExperimentManager {
     /** После рестарта RUNNING возвращаются в очередь; игра и завершённые дни не пересоздаются. */
     public void recover() {
         // Поддерживается ровно один экземпляр экспериментального приложения.
-        transactions.executeWithoutResult(tx -> {
-            for (var group : series.findAll())
-                for (var run : runs.findBySeriesIdOrderByNumberDesc(group.getId()))
-                    if ("RUNNING".equals(run.getStatus())) run.setStatus("QUEUED");
-        });
+        transactions.executeWithoutResult(tx -> runs.requeueRunning());
     }
 
     @PreDestroy
@@ -86,6 +84,7 @@ public class ExperimentManager {
         config.validate();
         var group = new ExperimentSeries();
         group.setMode(config.getMode());
+        group.setTarget(config.getTarget());
         group.setGeneratorVersion(ExperimentScenarios.VERSION);
         group.setPolicyVersion("bots-v6");
         if ("EVALUATE".equals(config.getMode())) group.setModelVersion(activeModelVersion());
@@ -133,8 +132,9 @@ public class ExperimentManager {
             case "stop":
                 if ("RUNNING".equals(group.getStatus()) || "PAUSED".equals(group.getStatus()))
                     group.setStatus("STOPPED");
-                for (var run : runs.findBySeriesIdOrderByNumberDesc(id))
-                    if ("QUEUED".equals(run.getStatus())) run.setStatus("CANCELLED");
+                for (var pair : pairs.lockWithQueuedRun(id))
+                    pair.invalidate(runs.findByPairId(pair.getId()));
+                runs.cancelQueuedBySeriesId(id);
                 break;
             default: throw new IllegalArgumentException("Неизвестная операция");
         }
@@ -192,8 +192,7 @@ public class ExperimentManager {
         try {
             // Между активными сериями чередуем стартовую позицию. Слот берётся
             // до claim и освобождается после игры даже при ошибке или паузе.
-            var active = series.findAllByOrderByIdDesc().stream()
-                .filter(group -> "RUNNING".equals(group.getStatus())).toList();
+            var active = series.findByStatusOrderByIdDesc("RUNNING");
             if (active.isEmpty()) return;
             int start = Math.floorMod(nextSeriesOffset++, active.size());
             boolean claimed;
@@ -266,14 +265,15 @@ public class ExperimentManager {
             run.setAttempts(run.getAttempts() + 1);
             boolean retry = run.getAttempts() < 2 && "RUNNING".equals(run.getSeries().getStatus());
             run.setStatus(retry ? "QUEUED" : "ERROR");
-            if (!retry && "EVALUATE".equals(run.getSeries().getMode())) {
-                int partnerNumber = run.getNumber() % 2 == 0 ? run.getNumber() - 1 : run.getNumber() + 1;
-                runs.findBySeriesIdAndNumber(run.getSeries().getId(), partnerNumber).ifPresent(partner -> {
-                    if ("WAITING_PAIR".equals(partner.getStatus())) partner.setStatus("INCOMPLETE");
-                });
-            }
+            if (!retry) invalidatePair(run);
             String error = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
             run.setError(error.substring(0, Math.min(1000, error.length())));
         });
+    }
+
+    private void invalidatePair(ExperimentRun run) {
+        if (run.getPair() == null) return;
+        var pair = pairs.lockById(run.getPair().getId()).orElseThrow();
+        pair.invalidate(runs.findByPairId(pair.getId()));
     }
 }

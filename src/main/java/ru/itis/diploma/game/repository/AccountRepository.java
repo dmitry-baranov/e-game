@@ -11,9 +11,9 @@ import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByEmail(String email);
-    List<Account> findByEmailIn(List<String> emails);
-    @Query("SELECT a FROM Account a WHERE a.role <> :role " +
-        "AND (a.email IS NULL OR a.email NOT LIKE 'bot-%@experiment.invalid') " +
+    List<Account> findByEmailInAndServiceAccountTrueAndServiceAccountType(
+        List<String> emails, Account.ServiceAccountType serviceAccountType);
+    @Query("SELECT a FROM Account a WHERE a.role <> :role AND a.serviceAccount = false " +
         "ORDER BY a.fullName, a.id")
     List<Account> findGameParticipants(@Param("role") Account.Role excludedRole);
 }

@@ -30,6 +30,20 @@ class ExperimentScenariosTest {
     }
 
     @Test
+    void currentGeneratorUsesConfiguredDayRange() {
+        var c = new ExperimentConfig();
+        c.setMinDays(75);
+        c.setMaxDays(120);
+        c.setTarget(100);
+        c.setMaxAttempts(120);
+        var horizons = java.util.stream.IntStream.rangeClosed(1, 100)
+            .map(i -> generator.generate(c, i).horizon()).boxed().toList();
+        assertTrue(horizons.stream().allMatch(days -> days >= 75 && days <= 120));
+        assertTrue(horizons.stream().distinct().count() > 20,
+            "Диапазон дней должен давать разные детерминированные горизонты");
+    }
+
+    @Test
     void evaluationUsesSameWorldForBothPolicies() {
         var c = new ExperimentConfig();
         c.setMode("EVALUATE");
@@ -107,8 +121,7 @@ class ExperimentScenariosTest {
                 }
                 case "PERISHABLE" -> {
                     assertTrue(game.getAbsoluteQualityProductLife() >= 4 && game.getAbsoluteQualityProductLife() <= 7);
-                    assertEquals(Math.min(c.getMaxDays(), Math.max(c.getMinDays(),
-                        Math.max(45, game.getAbsoluteQualityProductLife() * 7 + 10))), scenario.horizon());
+                    assertTrue(scenario.horizon() >= c.getMinDays() && scenario.horizon() <= c.getMaxDays());
                 }
                 case "OVERSUPPLY" -> {
                     assertEquals(Math.max(1, standard.getPurchaseLimit() / 3), game.getPurchaseLimit());

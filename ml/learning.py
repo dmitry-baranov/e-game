@@ -55,21 +55,10 @@ def save_report(report):
         with psycopg2.connect(os.environ["STRATEGY_REPORT_DATABASE_URL"]) as connection:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS training_run_report (
-                      training_run_id UUID PRIMARY KEY,
-                      created_at TIMESTAMPTZ NOT NULL,
-                      status TEXT NOT NULL,
-                      artifact_sha256 TEXT,
-                      report JSONB NOT NULL)
-                """)
-                cursor.execute("""
                     INSERT INTO training_run_report (training_run_id, created_at, status, artifact_sha256, report)
                     VALUES (%s, %s, %s, %s, %s::jsonb)
                 """, (report["training_run_id"], report["created_at"], report["status"],
                       report.get("artifact_sha256"), json.dumps(report, default=str)))
-                schema = Path(__file__).with_name("analytics_views.sql")
-                if schema.exists():
-                    cursor.execute(schema.read_text(encoding="utf-8"))
     path = ARTIFACT.with_name("last-report.json")
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=ARTIFACT.parent, delete=False) as file:
         json.dump(report, file, indent=2, ensure_ascii=False, default=str)

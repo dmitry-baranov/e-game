@@ -11,4 +11,6 @@ public interface InvestmentCreditPaymentRepository extends JpaRepository<Investm
 
     List<InvestmentCreditPayment> findAllByManufacturerIdInAndNextDate(List<Long> manufacturerIds, Integer date);
 
+    List<InvestmentCreditPayment> findAllByManufacturer_Game_Id(Long gameId);
+
 }

@@ -29,6 +29,13 @@ public class ProductionParameters {
      */
     private Integer startDate;
 
+    /** Last trade day belonging to this cycle (inclusive). */
+    private Integer endDate;
+
+    /** Optional experiment decision id, kept scalar to preserve the game -> experiment module boundary. */
+    @jakarta.persistence.Column(name = "decision_log_id")
+    private Long decisionLogId;
+
     @ManyToOne
     private Manufacturer manufacturer;
 

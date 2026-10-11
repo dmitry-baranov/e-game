@@ -18,6 +18,30 @@ import static org.mockito.Mockito.*;
 
 class BotPoliciesTest {
     @Test
+    void selectableNamesAndDescriptionsComeFromTheSameCatalog() {
+        assertEquals(new HashSet<>(Arrays.asList(BotPolicies.NAMES)), BotPolicies.DESCRIPTIONS.keySet());
+        assertTrue(!BotPolicies.DESCRIPTIONS.containsKey("EVAL_RULES"));
+        assertTrue(!BotPolicies.DESCRIPTIONS.containsKey("MODEL"));
+    }
+
+    @Test
+    void exploreKeepsTheFixedSeedContract() {
+        var policies = new BotPolicies(mock(StrategyCoordinator.class));
+        var start = new StrategySnapshot(1, 0, false, null, 0, BigDecimal.TEN,
+            BigDecimal.ONE, BigDecimal.TEN, new BigDecimal("5"), BigDecimal.ONE, BigDecimal.ONE,
+            12, null, null, null, null, null, 0, 0, List.of(), List.of(), List.of(), null);
+
+        var action = policies.decide(start, "EXPLORE", 42, 0, null).action();
+
+        assertEquals(20, action.getProductCount());
+        assertEquals(new BigDecimal("0.4"), action.getQualityIndex());
+        assertEquals(3, action.getAssortment());
+        assertEquals(0, action.getAdvertisingIntensityIndex());
+        assertEquals(0, action.getAdvertisingDays());
+        assertEquals(new BigDecimal("8.40"), action.getPrice());
+    }
+
+    @Test
     void allThirtyTwoNewPoliciesProduceReproducibleValidActionsWithOnlyOwnHistory() {
         assertEquals(38, BotPolicies.NAMES.length);
         assertEquals(38, new HashSet<>(Arrays.asList(BotPolicies.NAMES)).size());

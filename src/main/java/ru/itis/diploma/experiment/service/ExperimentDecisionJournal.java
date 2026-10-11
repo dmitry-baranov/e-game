@@ -38,8 +38,8 @@ public class ExperimentDecisionJournal {
     }
 
     /** Снимок, предложение и результат проверки сохраняются в транзакции игрового дня. */
-    public void logDecision(ExperimentRun run, Manufacturer player, StrategySnapshot snapshot,
-                            BotPolicies.Decision decision, String outcome, String modelVersion) {
+    public BotDecisionLog logDecision(ExperimentRun run, Manufacturer player, StrategySnapshot snapshot,
+                                      BotPolicies.Decision decision, String outcome, String modelVersion) {
         try {
             var log = new BotDecisionLog();
             log.setRun(run);
@@ -56,9 +56,14 @@ public class ExperimentDecisionJournal {
             log.setSnapshotJson(mapper.writeValueAsString(snapshot));
             log.setProposedActionJson(mapper.writeValueAsString(decision.action()));
             log.setCandidatesJson(mapper.writeValueAsString(decision.candidates()));
-            logs.save(log);
+            return logs.save(log);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Не удалось сохранить решение бота", e);
         }
+    }
+
+    public void acceptCycle(BotDecisionLog decision, ru.itis.diploma.game.model.ProductionParameters cycle) {
+        decision.setAcceptedCycle(cycle);
+        cycle.setDecisionLogId(decision.getId());
     }
 }

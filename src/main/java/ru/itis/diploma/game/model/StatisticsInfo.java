@@ -17,7 +17,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@jakarta.persistence.Table(indexes = @jakarta.persistence.Index(columnList = "manufacturer_id,tradeDate"))
+@jakarta.persistence.Table(
+    uniqueConstraints = @jakarta.persistence.UniqueConstraint(columnNames = {"manufacturer_id", "tradeDate"}),
+    indexes = @jakarta.persistence.Index(columnList = "manufacturer_id,tradeDate"))
 public class StatisticsInfo {
 
     @Id

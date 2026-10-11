@@ -12,6 +12,7 @@ public class BotDecisionLog {
     private Long id;
     @ManyToOne(optional = false) private ExperimentRun run;
     @ManyToOne(optional = false) private ru.itis.diploma.game.model.Manufacturer manufacturer;
+    @OneToOne private ru.itis.diploma.game.model.ProductionParameters acceptedCycle;
     private int decisionDay;
     private String policy;
     private String modelVersion;

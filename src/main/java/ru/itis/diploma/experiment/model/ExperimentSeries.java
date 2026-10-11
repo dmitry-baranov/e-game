@@ -21,6 +21,7 @@ public class ExperimentSeries {
     private String modelVersion;
     private String generatorVersion;
     private String policyVersion;
+    private int target;
     private int nextNumber = 1;
     private LocalDateTime createdAt = LocalDateTime.now();
 }

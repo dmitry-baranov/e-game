@@ -119,7 +119,8 @@ public class ManufacturerServiceImpl implements ManufacturerService {
 
     @Override
     @Transactional
-    public void defineInitialProductionParameters(InitialProductionParameters initialProductionParameters, Long accountId, Game game) {
+    public ProductionParameters defineInitialProductionParameters(InitialProductionParameters initialProductionParameters,
+                                                                  Long accountId, Game game) {
         game = gameRepository.lockById(game.getId()).orElseThrow();
         var manufacturer = getManufacturerByAccountIdAndGameId(accountId, game.getId());
         if (manufacturer == null || manufacturer.isEnteredInitialProductionParameters() || game.getStatus() == GameStatus.FINISHED)
@@ -128,7 +129,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
             initialProductionParameters.getProductionCapacityPerDay() < 1)
             throw new IllegalArgumentException("Некорректная мощность");
         validateAndCalculate(initialProductionParameters, game, initialProductionParameters.getProductionCapacityPerDay());
-        trainingCapture.capture(manufacturer, initialProductionParameters);
+        var trainingEpisode = trainingCapture.capture(manufacturer, initialProductionParameters);
         initialProductionParameters.setInvestmentCreditAmount(initialProductionParameters.getCostPrice()
             .multiply(BigDecimal.valueOf(initialProductionParameters.getProductCount()))
             .add(initialProductionParameters.getAdvertisingCost())
@@ -144,6 +145,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
 
         saveAdvertisement(manufacturer, initialProductionParameters);
         var productionParameters = saveProductParameters(manufacturer, initialProductionParameters);
+        trainingCapture.linkCycle(trainingEpisode, productionParameters);
         productionParameters.setBusinessCreditAmount(BigDecimal.ZERO);
         var payment = InvestmentCreditPayment.builder()
             .date(game.getCurrentDay())
@@ -153,11 +155,13 @@ public class ManufacturerServiceImpl implements ManufacturerService {
             .nextDate(game.getCurrentDay() + MONTH)
             .build();
         investmentCreditPaymentRepository.save(payment);
+        return productionParameters;
     }
 
     @Override
     @Transactional
-    public void defineNewProductionParameters(NewProductionParameters newProductionParameters, Long accountId, Game game) {
+    public ProductionParameters defineNewProductionParameters(NewProductionParameters newProductionParameters,
+                                                              Long accountId, Game game) {
         game = gameRepository.lockById(game.getId()).orElseThrow();
         var manufacturer = getManufacturerByAccountIdAndGameId(accountId, game.getId());
         if (manufacturer == null || !manufacturer.isEnteredInitialProductionParameters() || game.getStatus() == GameStatus.FINISHED)
@@ -173,12 +177,13 @@ public class ManufacturerServiceImpl implements ManufacturerService {
             manufacturer.getBalance().add(newProductionParameters.getBusinessCreditAmount())
                 .compareTo(newProductionParameters.getProductionCosts()) < 0)
             throw new IllegalArgumentException("Недостаточно средств для производства");
-        trainingCapture.capture(manufacturer, newProductionParameters);
+        var trainingEpisode = trainingCapture.capture(manufacturer, newProductionParameters);
         manufacturer.setBalance(manufacturer.getBalance()
             .add(newProductionParameters.getBusinessCreditAmount().subtract(newProductionParameters.getProductionCosts())));
         manufacturerRepository.save(manufacturer);
         saveAdvertisement(manufacturer, newProductionParameters);
         var productionParameters = saveProductParameters(manufacturer, newProductionParameters);
+        trainingCapture.linkCycle(trainingEpisode, productionParameters);
         productionParameters.setInterestRateBusinessCredit(manufacturer.getGame().getInterestRateBusinessCredit());
         productionParameters.setBusinessCreditAmount(newProductionParameters.getBusinessCreditAmount());
         if (productionParameters.getBusinessCreditAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -195,7 +200,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
             businessCreditPaymentRepository.save(payment);
         }
         productionParametersRepository.save(productionParameters);
-
+        return productionParameters;
     }
 
     @Override
@@ -357,6 +362,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
             .qualityIndex(productionParameters.getQualityIndex())
             .productionCapacityPerDay(manufacturer.getProductionCapacityPerDay())
             .startDate(manufacturer.getGame().getCurrentDay())
+            .endDate(manufacturer.getGame().getCurrentDay() + productionParameters.getTimeToMarket())
             .timeToMarket(productionParameters.getTimeToMarket())
             .build();
         productionParametersRepository.save(resultProductionParameters);

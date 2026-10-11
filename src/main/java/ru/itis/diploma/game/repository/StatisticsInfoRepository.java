@@ -9,4 +9,5 @@ public interface StatisticsInfoRepository extends JpaRepository<StatisticsInfo, 
     long countByManufacturer_Game_Id(Long gameId);
     List<StatisticsInfo> findByManufacturerIdOrderByTradeDateDesc(Long manufacturerId);
     List<StatisticsInfo> findByManufacturerIdOrderByTradeDateDesc(Long manufacturerId, Pageable page);
+    List<StatisticsInfo> findByManufacturer_Game_IdOrderByTradeDateAscIdAsc(Long gameId);
 }

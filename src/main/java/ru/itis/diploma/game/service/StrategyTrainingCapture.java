@@ -20,19 +20,29 @@ public class StrategyTrainingCapture {
     private final StrategyTrainingEpisodeRepository episodes;
     private final ObjectMapper mapper;
     private final ThreadLocal<Map<Long, StrategySnapshot>> stagedSnapshots = new ThreadLocal<>();
+    private final ThreadLocal<Long> stagedRunId = new ThreadLocal<>();
 
     /** One atomic experiment turn: preserve each player's view before anyone acts. */
     public void withPreDecisionSnapshots(Map<Long, StrategySnapshot> staged, Runnable actions) {
-        if (stagedSnapshots.get() != null) throw new IllegalStateException("Повторное открытие хода");
-        stagedSnapshots.set(Map.copyOf(staged));
-        try { actions.run(); }
-        finally { stagedSnapshots.remove(); }
+        withPreDecisionSnapshots(null, staged, actions);
     }
 
-    public void capture(Manufacturer owner, CommonProductionParameters action) {
-        if (!Boolean.TRUE.equals(owner.getAllowStrategyTraining())) return;
+    public void withPreDecisionSnapshots(Long runId, Map<Long, StrategySnapshot> staged, Runnable actions) {
+        if (stagedSnapshots.get() != null) throw new IllegalStateException("Повторное открытие хода");
+        stagedSnapshots.set(Map.copyOf(staged));
+        if (runId != null) stagedRunId.set(runId);
+        try { actions.run(); }
+        finally {
+            stagedSnapshots.remove();
+            stagedRunId.remove();
+        }
+    }
+
+    public StrategyTrainingEpisode capture(Manufacturer owner, CommonProductionParameters action) {
+        if (!Boolean.TRUE.equals(owner.getAllowStrategyTraining())) return null;
         var episode = new StrategyTrainingEpisode();
         episode.setManufacturer(owner);
+        episode.setRunId(stagedRunId.get());
         episode.setDecisionDay(owner.getGame().getCurrentDay());
         episode.setCycleDays(action.getTimeToMarket());
         try {
@@ -48,6 +58,12 @@ public class StrategyTrainingCapture {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Не удалось записать обучающий эпизод", e);
         }
+        return episodes.save(episode);
+    }
+
+    public void linkCycle(StrategyTrainingEpisode episode, ru.itis.diploma.game.model.ProductionParameters cycle) {
+        if (episode == null) return;
+        episode.setCycle(cycle);
         episodes.save(episode);
     }
 

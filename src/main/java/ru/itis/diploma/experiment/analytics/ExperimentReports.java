@@ -15,26 +15,11 @@ import java.util.*;
 @Service @RequiredArgsConstructor
 public class ExperimentReports {
     private final JdbcTemplate jdbc;
+    private final BotAnalyticsReadRepository analytics;
 
     /** Построение полного отчёта выполняется по запросу, а не при каждом обновлении статуса. */
     public Map<String, Object> report(long seriesId) {
-        var coverage = jdbc.queryForMap("""
-            SELECT count(*) AS episodes,
-                   count(*) FILTER (WHERE observed=cycle_days AND duplicate_days=0) AS complete_cycles,
-                   count(*) FILTER (WHERE observed<cycle_days) AS incomplete_cycles,
-                   coalesce(sum(duplicate_days),0) AS duplicate_days,
-                   count(*) FILTER (WHERE observed=cycle_days AND duplicate_days=0 AND sold=0) AS zero_sales_cycles
-            FROM (SELECT e.id, e.cycle_days, count(DISTINCT s.trade_date) AS observed,
-                         count(s.id) - count(DISTINCT s.trade_date) AS duplicate_days,
-                         coalesce(sum(s.products_sold),0) AS sold
-                  FROM strategy_training_episode e
-                  JOIN manufacturer m ON m.id=e.manufacturer_id
-                  JOIN experiment_run r ON r.game_id=m.game_id
-                  LEFT JOIN statistics_info s ON s.manufacturer_id=m.id
-                       AND s.trade_date>e.decision_day AND s.trade_date<=e.decision_day+e.cycle_days
-                  WHERE r.series_id=? AND r.status='COMPLETED'
-                  GROUP BY e.id) cycles
-            """, seriesId);
+        var coverage = analytics.coverage(seriesId).templateModel();
         var policies = jdbc.queryForList("""
             SELECT m.selected_strategy AS policy, count(*) AS players,
                    round(avg(gr.result),2) AS mean_result_after_debt,

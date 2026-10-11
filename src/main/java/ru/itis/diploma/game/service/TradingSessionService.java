@@ -25,6 +25,7 @@ public class TradingSessionService {
     private final PaymentService paymentService;
     private final StatisticsInfoRepository statisticsInfoRepository;
     private final GameRepository gameRepository;
+    private final CycleObservationService cycleObservations;
 
     @Transactional
     public void doDaysActivities(Game requestedGame) {
@@ -53,7 +54,8 @@ public class TradingSessionService {
         buyerService.makePurchases(game, productionParametersList, statistics);
         paymentService.makePayments(game, statistics);
         setCurrentCreditDebtsAndBalanceToStatisticsInfo(game, statistics);
-        statisticsInfoRepository.saveAll(statistics.values());
+        statisticsInfoRepository.saveAllAndFlush(statistics.values());
+        cycleObservations.refresh(game.getId());
         gameRepository.save(game);
     }
 

@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public interface ExperimentSeriesRepository extends JpaRepository<ExperimentSeries, Long> {
     List<ExperimentSeries> findAllByOrderByIdDesc();
+    List<ExperimentSeries> findByStatusOrderByIdDesc(String status);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from ExperimentSeries s where s.id = :id")
     Optional<ExperimentSeries> lockById(Long id);

@@ -54,7 +54,8 @@ class BotParticipantsTest {
         var playersByGame = new HashMap<Long, List<Manufacturer>>();
         var nextAccount = new AtomicLong();
         var nextGame = new AtomicLong();
-        when(accounts.findByEmailIn(any())).thenAnswer(call -> {
+        when(accounts.findByEmailInAndServiceAccountTrueAndServiceAccountType(any(),
+            any(Account.ServiceAccountType.class))).thenAnswer(call -> {
             List<String> emails = call.getArgument(0);
             return emails.stream().filter(byEmail::containsKey).map(byEmail::get).toList();
         });

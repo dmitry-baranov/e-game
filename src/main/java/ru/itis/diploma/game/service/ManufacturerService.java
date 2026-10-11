@@ -25,13 +25,13 @@ public interface ManufacturerService {
 
     Manufacturer getManufacturerByAccountIdAndGameId(Long accountId, Long gameId);
 
-    void defineInitialProductionParameters(InitialProductionParameters initialProductionParameters,
-                                           Long accountId,
-                                           Game game);
+    ProductionParameters defineInitialProductionParameters(InitialProductionParameters initialProductionParameters,
+                                                            Long accountId,
+                                                            Game game);
 
-    void defineNewProductionParameters(NewProductionParameters newProductionParameters,
-                                       Long accountId,
-                                       Game game);
+    ProductionParameters defineNewProductionParameters(NewProductionParameters newProductionParameters,
+                                                        Long accountId,
+                                                        Game game);
 
     ManufacturerFinancialStatus getManufacturerFinancialStatus(Game game, Long accountId);
 
