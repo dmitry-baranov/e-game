@@ -163,7 +163,7 @@
 
     //ограничение количества дней рекламы циклом производства (time to market)
     function calculateMaxOfAdvertisingDays() {
-        let timeToMarket = Math.ceil(Number(productCount.value) / (Math.ceil(Number(productionCapacityPerDay) / M) * M));
+        let timeToMarket = Math.ceil(Number(productCount.value) / Number(productionCapacityPerDay));
         document.getElementById('timeToMarket').value = timeToMarket.toString();
         advertisingDays.setAttribute("max", timeToMarket.toString())
     }

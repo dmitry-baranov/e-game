@@ -3,7 +3,7 @@ package ru.itis.diploma.security.details;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import ru.itis.diploma.model.Account;
+import ru.itis.diploma.game.model.Account;
 
 import java.util.Collection;
 import java.util.Collections;

@@ -27,6 +27,10 @@ effective-settings.xml
 .idea/
 *.iml
 *.log
+__pycache__/
+.venv/
+.env.analytics
+/ml/artifacts/
 *.lck
 *.jar
 */dependency-reduced-pom.xml

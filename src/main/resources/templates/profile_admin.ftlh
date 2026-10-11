@@ -90,6 +90,10 @@
                 </div>
                 <div class="text-center" style="margin-top: 10px">
                     <a class="btn btn-primary" href="/game" role="button">Новая игра</a>
+                    <#if botExperimentsEnabled>
+                        <a class="btn btn-outline-primary" href="/admin/bot-experiments" role="button">Серии игр ботов</a>
+                        <a class="btn btn-outline-primary" href="/admin/bot-analytics" role="button">Аналитика ботов и моделей</a>
+                    </#if>
                 </div>
             </div>
         </div>

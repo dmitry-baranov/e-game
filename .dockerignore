@@ -4,3 +4,7 @@
 target
 *.iml
 *.log
+.venv*/
+ml/artifacts/
+presentation/
+.env*

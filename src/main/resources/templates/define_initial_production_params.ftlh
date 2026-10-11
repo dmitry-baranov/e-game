@@ -41,6 +41,8 @@
 </nav>
 
 <div class="container" style="margin: 100px auto auto;">
+    <p><a class="btn btn-outline-primary" href="/game/${game.id}/strategies">Посмотреть стартовые сценарии</a>
+        Выбор курса не заполняет форму и не берёт кредит.</p>
     <form class="row g-3 color-rect-border" method="post" action="/game/${game.id}/initial-production-parameters">
         <h1 style="text-align: center">Определите параметры открываемого предприятия</h1>
         <div class="row g-3">
@@ -150,7 +152,7 @@
 
     // количества дней рекламы циклом производства (time to market)
     function calculateMaxOfAdvertisingDays() {
-        let timeToMarket = Math.ceil(Number(productCount.value) / (Math.ceil(Number(productionCapacityPerDay.value) / M) * M));
+        let timeToMarket = Math.ceil(Number(productCount.value) / Number(productionCapacityPerDay.value));
         document.getElementById('timeToMarket').value = timeToMarket.toString();
         advertisingDays.setAttribute("max", timeToMarket.toString())
     }
