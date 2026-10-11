@@ -10,12 +10,12 @@
     ],
     "notes": "Исходная задача — добавить в экономическую игру агентов, которые помогают игроку выбирать стратегию. За шесть итераций мы построили не только интерфейс советов, но и отдельный контур сбора данных, обучения и исследования. В презентации отделены реализованные возможности, фактические результаты и дальнейшие задачи. Технические оптимизации не являются предметом доклада.",
     "sources": [
-      "STRATEGY_AGENTS_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md"
     ]
   },
   {
@@ -41,7 +41,7 @@
     "notes": "Игроку приходится одновременно управлять производством, продажами и деньгами. Поэтому задача советчика — не просто назвать цену, а показать несколько допустимых решений и объяснить их последствия. Кнопка выбора стратегии сохраняет ориентир, но сама не запускает производство и не берёт кредит. Это сохраняет самостоятельность участника игры.",
     "sources": [
       "analitics/STRATEGY_AGENTS_TASK.md",
-      "STRATEGY_AGENTS_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md"
     ]
   },
   {
@@ -76,12 +76,12 @@
     ],
     "notes": "Первая итерация была полностью основана на правилах. Во второй появилась возможность учить прогноз продаж и использовать его для сравнения карточек. Третья дала отдельную лабораторию с ботами и парными играми. Четвёртая сделала решения и обучение наблюдаемыми. Пятая расширила разнообразие поведения ботов и позволила собрать крупный корпус. Шестая преимущественно посвящена технической поддержке этого масштаба; нового исследовательского алгоритма ей не приписываем. Часть исследовательских задач четвёртого этапа остаётся открытой.",
     "sources": [
-      "STRATEGY_AGENTS_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md"
     ]
   },
   {
@@ -90,11 +90,11 @@
     "layout": "diagram",
     "notes": "Агент — компонент, отвечающий за аспект решения. Модель — обученный прогноз внутри системы, её алгоритм может быть CatBoost, LightGBM или RandomForest. Координатор формирует варианты и объединяет результаты. Сейчас одна модель продаж общая для всех карточек; рыночный, производственный и финансовый агенты не являются тремя CatBoost. LLM добавляет текстовое объяснение, а не выполняет экономические расчёты.",
     "sources": [
-      "STRATEGY_AGENTS_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "nodes": [
       {
@@ -171,8 +171,8 @@
     "layout": "mockup",
     "notes": "Это эскиз представления вклада агентов, а не скриншот действующей страницы. Сейчас интерфейс показывает объединённые карточки вариантов, а не три независимых панели. В предлагаемом представлении рыночный агент объясняет торговые ориентиры, производственный — параметры выпуска и затраты, финансовый — деньги и риск. Финальный вариант формируется совместно: каждый агент не отдаёт игроку отдельную несовместимую команду. Все фразы в эскизе иллюстративные.",
     "sources": [
-      "STRATEGY_AGENTS_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
       "src/main/resources/templates/strategies.ftlh"
     ],
     "lead": "Одна ситуация: продажи замедлились, товар остался на складе, скоро платёж.",
@@ -199,11 +199,11 @@
     "layout": "diagram",
     "notes": "Рыночный агент сейчас анализирует собственные продажи за последние доступные дни и видимые предложения конкурентов. Он даёт свидетельства для формирования вариантов: цену конкурента, историю продаж, предупреждение о короткой истории или ограничении продаж запасом. Например, более дешёвый конкурент даёт основание сравнить снижение цены, но не гарантирует рост продаж. Отдельная ML-модель внутри этого агента пока не встроена: координатор вызывает общий прогноз после формирования карточек.",
     "sources": [
-      "STRATEGY_AGENTS_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "nodes": [
       {
@@ -281,11 +281,11 @@
     "layout": "diagram",
     "notes": "Производственный агент получает параметры рассматриваемого плана и известные базовые цены. Формулы игры определяют себестоимость, длительность цикла, стоимость выпуска и рекламы, а на старте — мощности. Варианты проверяются на допустимость. Координатор предлагает изменить партию, качество или рекламу, а производственный агент рассчитывает их последствия. Поэтому фразу «агент предлагает меньшую партию» следует понимать как вклад роли в общую рекомендацию, а не независимый выбор производственного агента. Формулы уже известны, учить CatBoost воспроизводить их не требуется.",
     "sources": [
-      "STRATEGY_AGENTS_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "nodes": [
       {
@@ -363,9 +363,9 @@
     "layout": "diagram",
     "notes": "Финансовый агент сначала проверяет, хватает ли денег на вариант, и рассчитывает известные платежи и ориентир резерва. После ML-прогноза координатор вызывает пересчёт условных денег: баланс после затрат минус платежи плюс прогнозная выручка после налога. Для карточки с новым кредитом ML-пересчёт денег сейчас не выполняется, потому что будущие платежи нового кредита здесь не моделируются. Это оценка сценария, а не гарантированная будущая прибыль. Критерий общего выбора — осторожная оценка денег у сопоставимых карточек.",
     "sources": [
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "nodes": [
       {
@@ -442,9 +442,9 @@
     "layout": "diagram",
     "notes": "Текущая последовательность: снимок доступного состояния, рыночный анализ, создание нескольких планов, производственный и финансовый фильтр, прогноз общей модели для каждого допустимого плана, пересчёт денег и сравнение. Это упрощённый граф данных, а не схема параллельного исполнения. В коде сначала сохраняется до трёх карточек. При применимом прогнозе ко всем сопоставимым вариантам без личного плана они сортируются по нижней оценке денег. При отсутствии сопоставимости порядок правил сохраняется. Модель не применяется до открытия предприятия. Другие обученные кандидаты могут показывать отличающийся выбор, но не голосуют за решение.",
     "sources": [
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java",
       "ml/server.py"
     ],
     "nodes": [
@@ -620,9 +620,9 @@
     "layout": "example",
     "notes": "Этот упрощённый пример показывает механику, а не реальные прогнозы и не точные карточки игры. Пусть на старте сравнения есть 500 денег, 50 известных платежей, налоги для простоты отсутствуют. Вариант A: затраты 300, прогноз продаж 40 по цене 10, условные деньги 550. Вариант B: затраты 240, продажи 38 по цене 10, деньги 590. Вариант C: затраты 300, продажи 47 по цене 9, деньги 573. Меньшая партия выигрывает по условным деньгам, несмотря на меньшее число продаж. В реальной реализации для ранжирования берётся осторожная оценка продаж, учитываются налог и допустимость. Новая цена или невыбранное действие остаются прогнозной, а не причинно доказанной оценкой.",
     "sources": [
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "lead": "Общая модель оценивает продажи; расчёт затрат и платежей определяет выгодный вариант.",
     "columns": [
@@ -715,8 +715,8 @@
     "callout": "Контрольный прогон: 38 завершённых игр, каждая политика участвовала дважды.",
     "notes": "Отдельно от агентов-советчиков здесь речь идёт о ботах — участниках игры, которые создают разные траектории данных. Было шесть политик, добавили ещё 32. Есть как осторожные, так и исследовательские варианты. При малом числе ботов политики чередуются между играми, чтобы корпус не состоял только из первых имён списка. Проверочный прогон подтверждает выполнение и покрытие политик, но не финансовую оптимальность каждой из них.",
     "sources": [
-      "STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
-      "src/main/java/ru/itis/diploma/experiment/BotPolicies.java"
+      "analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
+      "src/main/java/ru/itis/diploma/experiment/bot/BotPolicies.java"
     ]
   },
   {
@@ -738,7 +738,7 @@
     "callout": "Запрос совета сам по себе не является учебным действием.",
     "notes": "Снимок сохраняется при подтверждении производства, до появления будущих результатов. Потом к нему присоединяются продажи за полный следующий цикл. Так модель получает пары вход—результат. Прогнозируется наблюдаемое количество проданных единиц, а не скрытый спрос и не максимальная прибыль. В обычной игре использование эпизодов требует отдельного согласия игрока; экспериментальные боты работают в изолированной базе.",
     "sources": [
-      "STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md",
       "ml/learning.py"
     ]
   },
@@ -765,7 +765,7 @@
     "notes": "Признаки формируются из StrategySnapshot и рассматриваемого действия. Все кандидаты сейчас получают одни и те же 17 числовых признаков; категориальные возможности CatBoost сами по себе ещё не используются в этой версии. Скрытые параметры рынка можно видеть в административной аналитике для исследования, но нельзя передавать советчику. Отдельная будущая задача — проверить полезность разрешённых признаков, а не просто увеличить их число.",
     "sources": [
       "ml/learning.py",
-      "src/main/java/ru/itis/diploma/service/StrategySnapshotService.java"
+      "src/main/java/ru/itis/diploma/game/service/StrategySnapshotService.java"
     ]
   },
   {
@@ -796,7 +796,7 @@
     "sources": [
       "presentation/training-report-2026-10-09.json",
       "ml/learning.py",
-      "src/main/java/ru/itis/diploma/experiment/ExperimentManager.java",
+      "src/main/java/ru/itis/diploma/experiment/service/ExperimentManager.java",
       "presentation/series-status-2026-10-09.txt"
     ]
   },
@@ -828,7 +828,7 @@
     "sources": [
       "ml/learning.py",
       "presentation/training-report-2026-10-09.json",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
     ]
   },
   {
@@ -968,9 +968,9 @@
       "ml/learning.py",
       "ml/server.py",
       "presentation/training-report-2026-10-09.json",
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "nodes": [
       {
@@ -1119,8 +1119,8 @@
     "callout": "Исторический пилот CatBoost: 20 полных пар, 11 побед, средняя разница −15,97.",
     "notes": "Финансовая разница рассчитывается как результат модели минус результат правил. Пара засчитывается, только когда обе игры полны и модель действительно применялась. Исторический пилот после расширения небольшого корпуса дал 11 побед из 20, но средняя разница оказалась отрицательной: −15,97 игровых денежных единиц. Это полезный исследовательский результат: большинство небольших побед не гарантирует положительную среднюю выгоду. Этот пилот относится к прежнему CatBoost и не является оценкой нынешней RandomForest. Следующий этап — независимые пары для нового победителя, интервалы по уникальным seed и анализ неприменимости.",
     "sources": [
-      "STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
     ]
   },
   {
@@ -1145,7 +1145,7 @@
     "callout": "Новый запуск обучения сохраняется отдельно; старые отчёты не переписываются.",
     "notes": "Система стала исследуемой: можно перейти от среднего MAE к конкретной игре, циклу и карточке. Отчёты содержат срезы по рынку, политике, цене и горизонту, а версии модели связаны с сохранённым артефактом. Журналы решений сохраняются для новых решений; старым играм нельзя задним числом приписать подробный журнал. В некоторых случаях есть неполное покрытие причин исключения карточек — это тоже остаётся задачей аналитики. Эти данные помогают объяснить не только успех, но и неудачный результат.",
     "sources": [
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
       "ml/analytics_views.sql"
     ]
   },
@@ -1156,10 +1156,10 @@
     "notes": "Выбор алгоритма отвечает на вопрос, какой прогноз лучше при одинаковой задаче и признаках: CatBoost, LightGBM, RandomForest или Ridge. Выбор устройства советчика отвечает на другой вопрос: как его компоненты используют данные и принимают общее решение. A — контрольный советчик правил. B — нынешние агенты, одна общая модель продаж и финансовый пересчёт. C — гипотеза с отдельными прогнозными задачами агентов, которые координируются. Все три устройства ещё не прошли сопоставимый эксперимент как единая серия; C пока не реализован. Нельзя утверждать, что больше моделей автоматически даст лучший совет.",
     "sources": [
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "lead": "Алгоритм прогноза выбирается внутри архитектуры; архитектура проверяется по результату советов.",
     "columns": [
@@ -1204,7 +1204,7 @@
     "notes": "Здесь изображён возможный исследовательский вариант, а не описание текущего кода. Рыночный блок прогнозирует продажи; производственный мог бы прогнозировать дефицит или избыточный остаток; финансовый — риск нехватки денег на заданном горизонте. Для новых задач нужно определить метки, горизонт и критерии качества, затем собрать данные. В простых случаях остаток уже можно оценить из прогноза продаж, а затраты точно известны, поэтому отдельные модели могут оказаться избыточными. Координатор согласует выходы и проверяет ограничения; число агентов и моделей в финале зависит от измеренной пользы.",
     "sources": [
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
     ],
     "zones": [
       {
@@ -1333,7 +1333,7 @@
     "notes": "Сравнивать архитектуры нужно на одинаковых независимых сценариях и с одинаковыми допустимыми исходными данными. Сначала контроль правил, затем добавление общего прогноза, затем только обоснованные усложнения. Убирать или добавлять блок по одному позволяет проверить вклад компонентов. Оцениваем денежный эффект после долгов и его распределение, долю неприменимости, нарушения ограничений и ошибку прогноза. Объяснения проверяем отдельно, чтобы красивый текст не подменял качество решений. Сохранять стоит простейшее устройство, которое подтверждает нужную пользу; если её нет, результат тоже фиксируется.",
     "sources": [
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
     ],
     "cards": [
       {
@@ -1357,9 +1357,9 @@
     "layout": "diagram",
     "notes": "Результат экономического расчёта является источником истины для объяснения. Сейчас адаптер получает названия, причины, риски и мнения моделей, запрашивает короткий русский текст и проверяет формат, длину и отсутствие цифр. Он не получает право менять планы или расчёты. При сбое используется шаблонное объяснение. Для полноценного помощника предстоит улучшить структурированные причины, проверить достоверность текста и диалог по вопросам игрока. Проверка текущего ответа по форме сама по себе не гарантирует отсутствие смысловых ошибок.",
     "sources": [
-      "src/main/java/ru/itis/diploma/service/StrategyExplanationService.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java",
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
     ],
     "nodes": [
       {
@@ -1454,8 +1454,8 @@
     "notes": "Пример показывает желаемый пользовательский опыт: конкретный вариант, понятное объяснение, возможность задать вопрос. Сначала формируется обоснование из реальных расчётов, затем LLM переформулирует его. В действующем адаптере нет полноценного диалога и RAG. Источники правил здесь названы условно: будущий поиск должен возвращать конкретные фрагменты со ссылками, а не выдумывать их. Не обещаем прибыль и не выдаём осторожный прогноз за гарантию.",
     "sources": [
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
-      "src/main/java/ru/itis/diploma/service/StrategyExplanationService.java"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
+      "src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java"
     ],
     "lead": "Карточка содержит расчёты; текст связывает решение с ситуацией игрока.",
     "cards": [
@@ -1482,7 +1482,7 @@
     "notes": "RAG подбирает знания к вопросу игрока перед генерацией ответа. Версионированная база может содержать правила производства, налогов, кредитов, рекламы и разрешённые обезличенные разборы. Поиск возвращает конкретные фрагменты и идентификаторы источников. LLM получает их вместе с фактами карточки и объясняет ситуацию, ссылаясь на правила. Это не обучение модели продаж. Если база мала, сначала сравним прямую передачу правил с поиском; векторная база не является обязательным условием. Нужны проверка ссылок, релевантности и запрет извлечения скрытых данных.",
     "sources": [
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
     ],
     "nodes": [
       {
@@ -1580,10 +1580,10 @@
     "notes": "Целевая схема имеет два потока. В первом агенты с обученной моделью формируют проверенный план и экономические факты. Во втором вопрос игрока вызывает поиск по разрешённым знаниям. LLM соединяет факты рекомендации с найденными правилами и формирует объяснение. После проверки ответ показывается вместе с карточкой, а действие остаётся у игрока. Система не должна передавать объяснения LLM обратно в модель как проверенные учебные метки. Новые учебные примеры возникают из реально принятых действий и фактических результатов завершённых циклов.",
     "sources": [
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
-      "src/main/java/ru/itis/diploma/service/StrategyCoordinator.java",
-      "src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java",
-      "src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
+      "src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java",
+      "src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java",
+      "src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java"
     ],
     "nodes": [
       {
@@ -1737,7 +1737,7 @@
     "notes": "Это порядок исследовательских задач, а не обещание фиксированных дат. Работу над базой знаний можно начать параллельно сравнению моделей, но производственный перенос требует игровой проверки. Для модели нужны воспроизводимые метрики и контроль неприменимости; для стратегии — независимые сценарии и распределение финансового эффекта; для текста — соответствие расчётам, корректность ссылок и понимание пользователем. Если модель не даёт выгоды, сохраняем правила и разбираем причины, а не скрываем результат.",
     "sources": [
       "analitics/STRATEGY_AGENTS_STAGE2_TASK.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md"
     ]
   },
   {
@@ -1753,9 +1753,9 @@
     "callout": "Текущий лучший прогноз — RandomForest. Финальная польза стратегии ещё исследуется.",
     "notes": "Основной результат — переход от отдельных объяснимых правил к системе, в которой можно собрать данные, обучить кандидатов и проверить, что именно улучшилось. Сейчас есть работающий прогноз и исследовательский инструментарий; нельзя пока утверждать, что рекомендации гарантированно повышают прибыль игроков. Далее выбираем модель по независимым результатам, связываем её вывод с качественными объяснениями LLM и знаниями правил через RAG. Во время демонстрации можно показать карточки игрока, статус серии 20 и отчёт последнего обучения. Уточнение: выбираем не только алгоритм прогноза, но и устройство советчика; отдельные модели по ролям — пока исследовательская гипотеза.",
     "sources": [
-      "STRATEGY_AGENTS_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
-      "STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md",
+      "analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md",
       "presentation/training-report-2026-10-09.json"
     ]
   }

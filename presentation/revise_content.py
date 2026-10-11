@@ -7,12 +7,12 @@ AMBER='AA6520'
 old=json.loads((ROOT/'slides.json').read_text())
 original={s['title'].replace('\n',' '):s for s in old}
 S=[]
-BASE=['STRATEGY_AGENTS_IMPLEMENTATION.md','STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md']
-COORD=['src/main/java/ru/itis/diploma/service/StrategyCoordinator.java',
-       'src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java',
-       'src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java']
+BASE=['analitics/STRATEGY_AGENTS_IMPLEMENTATION.md','analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md']
+COORD=['src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java',
+       'src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java',
+       'src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java']
 LEARN=['ml/learning.py','ml/server.py','presentation/training-report-2026-10-09.json']
-FUTURE=['analitics/STRATEGY_AGENTS_STAGE2_TASK.md','STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md']
+FUTURE=['analitics/STRATEGY_AGENTS_STAGE2_TASK.md','analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md']
 
 
 def keep(title):
@@ -29,6 +29,19 @@ def n(id,text,box,tone='default',size=18):
 
 def e(a,b,direction='right',**kw):
     return dict(**{'from':a,'to':b},direction=direction,**kw)
+
+
+def current_source(source):
+    if source.startswith('STRATEGY_AGENTS_') and source.endswith('IMPLEMENTATION.md'):
+        return 'analitics/' + source
+    if source.startswith('src/main/java/ru/itis/diploma/service/'):
+        return source.replace('/diploma/service/', '/diploma/game/service/', 1)
+    return {
+        'src/main/java/ru/itis/diploma/experiment/BotPolicies.java':
+            'src/main/java/ru/itis/diploma/experiment/bot/BotPolicies.java',
+        'src/main/java/ru/itis/diploma/experiment/ExperimentManager.java':
+            'src/main/java/ru/itis/diploma/experiment/service/ExperimentManager.java',
+    }.get(source, source)
 
 
 keep('Агенты рекомендаций стратегий в e-game')
@@ -182,7 +195,7 @@ add('Как выбрать устройство для конечной реал
     callout='Выбираем и алгоритм прогноза, и способ объединения агентов; это разные эксперименты.')
 
 add('Как LLM интегрируется с агентами','АДАПТЕР ЕСТЬ · ПОЛНАЯ ПРОВЕРКА ЕЩЁ ВПЕРЕДИ','diagram',
-    'Результат экономического расчёта является источником истины для объяснения. Сейчас адаптер получает названия, причины, риски и мнения моделей, запрашивает короткий русский текст и проверяет формат, длину и отсутствие цифр. Он не получает право менять планы или расчёты. При сбое используется шаблонное объяснение. Для полноценного помощника предстоит улучшить структурированные причины, проверить достоверность текста и диалог по вопросам игрока. Проверка текущего ответа по форме сама по себе не гарантирует отсутствие смысловых ошибок.',sources=['src/main/java/ru/itis/diploma/service/StrategyExplanationService.java']+FUTURE,
+    'Результат экономического расчёта является источником истины для объяснения. Сейчас адаптер получает названия, причины, риски и мнения моделей, запрашивает короткий русский текст и проверяет формат, длину и отсутствие цифр. Он не получает право менять планы или расчёты. При сбое используется шаблонное объяснение. Для полноценного помощника предстоит улучшить структурированные причины, проверить достоверность текста и диалог по вопросам игрока. Проверка текущего ответа по форме сама по себе не гарантирует отсутствие смысловых ошибок.',sources=['src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java']+FUTURE,
     nodes=[n('calc','Агенты + ML\nпроверенные карточки',[.6,3.23,2.7,1.1]),
            n('facts','Подготовка фактов\nпричины · риск',[4.0,3.23,2.7,1.1]),
            n('llm','LLM\nпонятный пересказ',[7.4,3.23,2.3,1.1]),
@@ -192,7 +205,7 @@ add('Как LLM интегрируется с агентами','АДАПТЕР 
     callout='LLM объясняет уже рассчитанный совет; её текст не меняет выбранные параметры.')
 
 add('Как будет выглядеть объяснение пользователю','ЭСКИЗ · ПРИМЕР ТЕКСТА, А НЕ ОТВЕТ ДЕЙСТВУЮЩЕЙ LLM','mockup',
-    'Пример показывает желаемый пользовательский опыт: конкретный вариант, понятное объяснение, возможность задать вопрос. Сначала формируется обоснование из реальных расчётов, затем LLM переформулирует его. В действующем адаптере нет полноценного диалога и RAG. Источники правил здесь названы условно: будущий поиск должен возвращать конкретные фрагменты со ссылками, а не выдумывать их. Не обещаем прибыль и не выдаём осторожный прогноз за гарантию.',sources=FUTURE+['src/main/java/ru/itis/diploma/service/StrategyExplanationService.java'],
+    'Пример показывает желаемый пользовательский опыт: конкретный вариант, понятное объяснение, возможность задать вопрос. Сначала формируется обоснование из реальных расчётов, затем LLM переформулирует его. В действующем адаптере нет полноценного диалога и RAG. Источники правил здесь названы условно: будущий поиск должен возвращать конкретные фрагменты со ссылками, а не выдумывать их. Не обещаем прибыль и не выдаём осторожный прогноз за гарантию.',sources=FUTURE+['src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java'],
     lead='Карточка содержит расчёты; текст связывает решение с ситуацией игрока.',
     cards=[{'title':'Рекомендуемый план','body':'Меньшая партия. Расчёт затрат и прогноз продаж остаются на карточке.'},
            {'title':'Почему такой план','body':'«На складе остался товар. Меньшая партия снизит расходы и поможет сохранить деньги к платежу». '},
@@ -233,11 +246,28 @@ if EXTRA_CLOSE not in S[-1]['notes']:
     S[-1]['notes']+=EXTRA_CLOSE
 
 for slide in S:
-    slide['sources']=list(dict.fromkeys(slide['sources']))
+    slide['sources']=list(dict.fromkeys(current_source(source) for source in slide['sources']))
     for extra in (EXTRA_DATA,EXTRA_CLOSE):
         while slide['notes'].count(extra)>1:
             slide['notes']=slide['notes'].replace(extra,'',1)
 
 assert len(S)==30,len(S)
 (ROOT/'slides.json').write_text(json.dumps(S,ensure_ascii=False,indent=2)+'\n')
+# Keep links in the previously generated speaker notes in sync with the sources.
+notes_path=ROOT/'speaker-notes.md'
+notes=notes_path.read_text()
+for slide in S:
+    for source in slide['sources']:
+        if source.startswith('analitics/') and source.endswith('IMPLEMENTATION.md'):
+            previous=source.removeprefix('analitics/')
+        elif source.startswith('src/main/java/ru/itis/diploma/game/service/'):
+            previous=source.replace('/diploma/game/service/', '/diploma/service/', 1)
+        elif source == 'src/main/java/ru/itis/diploma/experiment/bot/BotPolicies.java':
+            previous='src/main/java/ru/itis/diploma/experiment/BotPolicies.java'
+        elif source == 'src/main/java/ru/itis/diploma/experiment/service/ExperimentManager.java':
+            previous='src/main/java/ru/itis/diploma/experiment/ExperimentManager.java'
+        else:
+            continue
+        notes=notes.replace(f'[{previous}](../{previous})', f'[{source}](../{source})')
+notes_path.write_text(notes)
 print('Reorganized 30 slides around internals, training, interface and architecture choices.')

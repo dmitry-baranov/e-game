@@ -1,12 +1,18 @@
 package ru.itis.diploma.experiment;
 
+import ru.itis.diploma.experiment.model.ExperimentRun;
+import ru.itis.diploma.experiment.repository.ExperimentRunRepository;
+import ru.itis.diploma.experiment.service.ExperimentManager;
+import ru.itis.diploma.experiment.service.ExperimentScenarios;
+import ru.itis.diploma.experiment.config.ExperimentConfig;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.scheduling.TaskScheduler;
-import ru.itis.diploma.model.enums.GameStatus;
-import ru.itis.diploma.repository.GameRepository;
-import ru.itis.diploma.repository.StatisticsInfoRepository;
+import ru.itis.diploma.game.model.enums.GameStatus;
+import ru.itis.diploma.game.repository.GameRepository;
+import ru.itis.diploma.game.repository.StatisticsInfoRepository;
 
 import java.time.Duration;
 import java.time.Instant;

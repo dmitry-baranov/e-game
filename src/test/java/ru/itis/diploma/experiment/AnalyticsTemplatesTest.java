@@ -1,6 +1,10 @@
 package ru.itis.diploma.experiment;
 
-import ru.itis.diploma.bot.BotPolicies;
+import ru.itis.diploma.experiment.model.ExperimentRun;
+import ru.itis.diploma.experiment.model.ExperimentSeries;
+import ru.itis.diploma.experiment.config.ExperimentConfig;
+
+import ru.itis.diploma.experiment.bot.BotPolicies;
 
 import freemarker.template.Configuration;
 import freemarker.template.TemplateExceptionHandler;
@@ -33,7 +37,7 @@ class AnalyticsTemplatesTest {
     void rendersEmptyAnalyticsWithoutInventedMeasurements() throws Exception {
         assertTrue(render("bot_experiments", Map.of("config", new ExperimentConfig(),
             "policyNames", BotPolicies.NAMES, "policyDescriptions", BotPolicies.DESCRIPTIONS))
-            .contains("Серия автономных игр"));
+            .contains("Создать серию игр"));
         assertTrue(render("bot_experiment_status", Map.of("seriesId", 13L)).contains("серией #13"));
         assertTrue(render("bot_analytics", Map.of("title", "Аналитика", "series", List.of())).contains("Аналитика"));
         var legacySeries = new HashMap<String, Object>();

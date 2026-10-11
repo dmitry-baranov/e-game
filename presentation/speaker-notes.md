@@ -20,12 +20,12 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md)
 
 ## Слайд 2. Исходная задача преподавателя
 
@@ -46,7 +46,7 @@
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_TASK.md](../analitics/STRATEGY_AGENTS_TASK.md)
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
 
 ## Слайд 3. Шесть итераций: путь развития
 
@@ -65,12 +65,12 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE6_IMPLEMENTATION.md)
 
 ## Слайд 4. Агент, модель и координатор: разные роли
 
@@ -92,11 +92,11 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 5. Что каждый агент предложит игроку
 
@@ -118,8 +118,8 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
 - [src/main/resources/templates/strategies.ftlh](../src/main/resources/templates/strategies.ftlh)
 
 ## Слайд 6. Внутри рыночного агента
@@ -144,11 +144,11 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 7. Внутри производственного агента
 
@@ -172,11 +172,11 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 8. Внутри финансового агента
 
@@ -198,9 +198,9 @@
 
 ### Основания
 
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 9. Как сейчас собирается единая рекомендация
 
@@ -230,9 +230,9 @@
 
 ### Основания
 
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 - [ml/server.py](../ml/server.py)
 
 ## Слайд 10. Пример: прогноз превращается в совет
@@ -258,9 +258,9 @@
 
 ### Основания
 
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 11. Обучение модели и выдача совета разделены
 
@@ -300,8 +300,8 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
-- [src/main/java/ru/itis/diploma/experiment/BotPolicies.java](../src/main/java/ru/itis/diploma/experiment/BotPolicies.java)
+- [analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
+- [src/main/java/ru/itis/diploma/experiment/bot/BotPolicies.java](../src/main/java/ru/itis/diploma/experiment/bot/BotPolicies.java)
 
 ## Слайд 13. Итерация 2 · Из решения в учебный пример
 
@@ -319,7 +319,7 @@
 
 ### Основания
 
-- [STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE2_IMPLEMENTATION.md)
 - [ml/learning.py](../ml/learning.py)
 
 ## Слайд 14. Признаки и граница доступных данных
@@ -341,7 +341,7 @@
 ### Основания
 
 - [ml/learning.py](../ml/learning.py)
-- [src/main/java/ru/itis/diploma/service/StrategySnapshotService.java](../src/main/java/ru/itis/diploma/service/StrategySnapshotService.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategySnapshotService.java](../src/main/java/ru/itis/diploma/game/service/StrategySnapshotService.java)
 
 ## Слайд 15. Какой набор реально использован в обучении
 
@@ -364,7 +364,7 @@
 
 - [presentation/training-report-2026-10-09.json](../presentation/training-report-2026-10-09.json)
 - [ml/learning.py](../ml/learning.py)
-- [src/main/java/ru/itis/diploma/experiment/ExperimentManager.java](../src/main/java/ru/itis/diploma/experiment/ExperimentManager.java)
+- [src/main/java/ru/itis/diploma/experiment/service/ExperimentManager.java](../src/main/java/ru/itis/diploma/experiment/service/ExperimentManager.java)
 - [presentation/series-status-2026-10-09.txt](../presentation/series-status-2026-10-09.txt)
 
 ## Слайд 16. Проверка прогноза без смешивания игр
@@ -388,7 +388,7 @@
 
 - [ml/learning.py](../ml/learning.py)
 - [presentation/training-report-2026-10-09.json](../presentation/training-report-2026-10-09.json)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 
 ## Слайд 17. Как сейчас обучаются модели-кандидаты
 
@@ -448,9 +448,9 @@
 - [ml/learning.py](../ml/learning.py)
 - [ml/server.py](../ml/server.py)
 - [presentation/training-report-2026-10-09.json](../presentation/training-report-2026-10-09.json)
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 19. Текущий результат: победила RandomForest
 
@@ -495,8 +495,8 @@ MAE на отложенных тестовых играх: меньше — лу
 
 ### Основания
 
-- [STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE3_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 
 ## Слайд 21. Итерация 4 · Аналитика и след решений
 
@@ -516,7 +516,7 @@ MAE на отложенных тестовых играх: меньше — лу
 
 ### Основания
 
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 - [ml/analytics_views.sql](../ml/analytics_views.sql)
 
 ## Слайд 22. Что сравниваем: алгоритм и устройство советчика
@@ -543,10 +543,10 @@ MAE на отложенных тестовых играх: меньше — лу
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 23. Вариант C: отдельные прогнозные задачи агентов
 
@@ -573,7 +573,7 @@ MAE на отложенных тестовых играх: меньше — лу
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 
 ## Слайд 24. Как выбрать устройство для конечной реализации
 
@@ -592,7 +592,7 @@ MAE на отложенных тестовых играх: меньше — лу
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 
 ## Слайд 25. Как LLM интегрируется с агентами
 
@@ -616,9 +616,9 @@ MAE на отложенных тестовых играх: меньше — лу
 
 ### Основания
 
-- [src/main/java/ru/itis/diploma/service/StrategyExplanationService.java](../src/main/java/ru/itis/diploma/service/StrategyExplanationService.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java](../src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java)
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 
 ## Слайд 26. Как будет выглядеть объяснение пользователю
 
@@ -641,8 +641,8 @@ MAE на отложенных тестовых играх: меньше — лу
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
-- [src/main/java/ru/itis/diploma/service/StrategyExplanationService.java](../src/main/java/ru/itis/diploma/service/StrategyExplanationService.java)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java](../src/main/java/ru/itis/diploma/game/service/StrategyExplanationService.java)
 
 ## Слайд 27. Как RAG добавит знания предметной области
 
@@ -667,7 +667,7 @@ RAG подбирает знания к вопросу игрока перед г
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 
 ## Слайд 28. Целевая система: два потока сходятся в ответе
 
@@ -697,10 +697,10 @@ RAG подбирает знания к вопросу игрока перед г
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
-- [src/main/java/ru/itis/diploma/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/service/StrategyCoordinator.java)
-- [src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/service/StrategyFinancialAgent.java)
-- [src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/service/HttpStrategyPredictor.java)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java](../src/main/java/ru/itis/diploma/game/service/StrategyCoordinator.java)
+- [src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java](../src/main/java/ru/itis/diploma/game/service/StrategyFinancialAgent.java)
+- [src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java](../src/main/java/ru/itis/diploma/game/service/HttpStrategyPredictor.java)
 
 ## Слайд 29. План дальнейшей работы и критерии результата
 
@@ -718,7 +718,7 @@ RAG подбирает знания к вопросу игрока перед г
 ### Основания
 
 - [analitics/STRATEGY_AGENTS_STAGE2_TASK.md](../analitics/STRATEGY_AGENTS_STAGE2_TASK.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
 
 ## Слайд 30. Результат шести итераций
 
@@ -739,7 +739,7 @@ RAG подбирает знания к вопросу игрока перед г
 
 ### Основания
 
-- [STRATEGY_AGENTS_IMPLEMENTATION.md](../STRATEGY_AGENTS_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
-- [STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE4_IMPLEMENTATION.md)
+- [analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md](../analitics/STRATEGY_AGENTS_STAGE5_IMPLEMENTATION.md)
 - [presentation/training-report-2026-10-09.json](../presentation/training-report-2026-10-09.json)

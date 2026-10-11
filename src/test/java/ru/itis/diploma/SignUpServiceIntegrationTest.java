@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itis.diploma.dto.SignUpForm;
-import ru.itis.diploma.model.Account;
-import ru.itis.diploma.repository.AccountRepository;
-import ru.itis.diploma.service.SignUpService;
+import ru.itis.diploma.game.dto.SignUpForm;
+import ru.itis.diploma.game.model.Account;
+import ru.itis.diploma.game.repository.AccountRepository;
+import ru.itis.diploma.game.service.SignUpService;
 
 import java.util.UUID;
 

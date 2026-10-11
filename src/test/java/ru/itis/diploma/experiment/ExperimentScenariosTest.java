@@ -1,5 +1,8 @@
 package ru.itis.diploma.experiment;
 
+import ru.itis.diploma.experiment.service.ExperimentScenarios;
+import ru.itis.diploma.experiment.config.ExperimentConfig;
+
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.List;
