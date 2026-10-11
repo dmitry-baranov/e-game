@@ -14,8 +14,16 @@
 <label>Seed <input name="seed" type="number" value="${config.seed?c}" required></label>
 <label>Лимит попыток (0 = автоматически) <input name="maxAttempts" type="number" min="0" value="${config.maxAttempts?c}" required></label><br>
 <label>Режим <select name="mode"><option value="COLLECT">Сбор данных</option><option value="EVALUATE">Парная оценка: правила / модель (чётная цель)</option></select></label><br>
-<label>Рынки (через запятую: BUDGET, COMPETITIVE, ADVERTISING)<br>
-<input name="marketMix" style="width:25rem" value="${config.marketMix?html}" required></label><br>
+<label>Рынки (через запятую, по умолчанию все восемь)<br>
+<input name="marketMix" style="width:min(90vw,850px)" value="${config.marketMix?html}" required></label><br>
+<small>BUDGET, COMPETITIVE, ADVERTISING, QUALITY_FOCUS, LOYALTY, CREDIT_CRUNCH, PERISHABLE, OVERSUPPLY — <a href="/admin/bot-experiments#markets">описание ниже</a>.</small><br>
+<details id="markets"><summary>Что меняется в новых рынках</summary><ul>
+<li>QUALITY_FOCUS — больший вес качества при выборе товара;</li>
+<li>LOYALTY — сильнее учитываются прошлые покупки и длиннее история привычки;</li>
+<li>CREDIT_CRUNCH — более дорогие кредиты и создание мощности;</li>
+<li>PERISHABLE — товары изнашиваются быстрее;</li>
+<li>OVERSUPPLY — покупатель может приобрести меньше товаров при том же объёме предложения.</li>
+</ul></details>
 <label>Политики ботов (через запятую, по умолчанию все 38; между играми состав чередуется)<br>
 <textarea name="policyMix" rows="5" maxlength="1200" required>${config.policyMix?html}</textarea></label><br>
 <details><summary>Все ${policyNames?size} политик и их смысл</summary><p>Когда для стратегии пока нет нужной истории, она сохраняет допустимый текущий план. Предпросмотр ниже показывает состав ближайших игр.</p><ul><#list policyNames as name><li><code>${name?html}</code> — ${policyDescriptions[name]?html}</li></#list></ul></details>

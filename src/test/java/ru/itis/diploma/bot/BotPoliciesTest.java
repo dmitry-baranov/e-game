@@ -1,6 +1,8 @@
-package ru.itis.diploma.experiment;
+package ru.itis.diploma.bot;
+
 
 import org.junit.jupiter.api.Test;
+import ru.itis.diploma.experiment.ExperimentConfig;
 import ru.itis.diploma.dto.StrategyAdvice;
 import ru.itis.diploma.dto.StrategySnapshot;
 import ru.itis.diploma.service.StrategyCoordinator;

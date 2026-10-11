@@ -42,6 +42,8 @@ services:
       dockerfile: ml/Dockerfile
     environment:
       STRATEGY_DATABASE_URL: postgresql://postgres:postgres@db:5432/diploma
+      # Deploy a reviewed experimental release explicitly; opt in to human-data retraining separately.
+      STRATEGY_AUTO_TRAIN: ${STRATEGY_AUTO_TRAIN:-false}
     volumes:
       - strategy_models:/app/artifacts
     depends_on:

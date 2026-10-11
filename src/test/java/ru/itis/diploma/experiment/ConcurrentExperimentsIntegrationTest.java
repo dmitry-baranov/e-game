@@ -86,4 +86,42 @@ class ConcurrentExperimentsIntegrationTest {
             .map(id -> runs.findBySeriesIdOrderByNumberDesc(id).stream().map(ExperimentRun::getStatus).toList())
             .toList());
     }
+
+    @Test
+    void everyNewMarketRunsThroughRealTradingWithoutTechnicalErrors() throws InterruptedException {
+        List<Long> ids = new ArrayList<>();
+        for (String market : ExperimentScenarios.MARKETS.subList(3, 8)) {
+            var config = new ExperimentConfig();
+            config.setMarketMix(market);
+            config.setTarget(1);
+            config.setMaxAttempts(1);
+            config.setParallel(1);
+            config.setMinBots(2);
+            config.setMaxBots(2);
+            config.setMinDays(30);
+            config.setMaxDays(30);
+            config.setPolicyMix("CAUTIOUS,PRICE");
+            ids.add(manager.create(config).getId());
+        }
+
+        Instant deadline = Instant.now().plus(Duration.ofMinutes(2));
+        while (Instant.now().isBefore(deadline)) {
+            var attempts = ids.stream().flatMap(id -> runs.findBySeriesIdOrderByNumberDesc(id).stream()).toList();
+            if (attempts.size() == ids.size() && attempts.stream().allMatch(r ->
+                "COMPLETED".equals(r.getStatus()) || "INCOMPLETE".equals(r.getStatus()))) {
+                for (var attempt : attempts) {
+                    var game = games.findById(attempt.getGame().getId()).orElseThrow();
+                    assertEquals(GameStatus.FINISHED, game.getStatus());
+                    assertEquals(30, attempt.getCompletedDays());
+                    assertEquals(60, statistics.countByManufacturer_Game_Id(game.getId()));
+                }
+                assertEquals(5, attempts.stream().map(ExperimentRun::getMarket).distinct().count());
+                return;
+            }
+            Thread.sleep(100);
+        }
+        fail("Новые рынки не закончили торговлю: " + ids.stream()
+            .map(id -> runs.findBySeriesIdOrderByNumberDesc(id).stream().map(ExperimentRun::getStatus).toList())
+            .toList());
+    }
 }

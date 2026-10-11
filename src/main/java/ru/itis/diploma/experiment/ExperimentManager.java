@@ -69,7 +69,7 @@ public class ExperimentManager {
         config.validate();
         var group = new ExperimentSeries();
         group.setMode(config.getMode());
-        group.setGeneratorVersion("market-v3");
+        group.setGeneratorVersion(ExperimentScenarios.VERSION);
         group.setPolicyVersion("bots-v6");
         if ("EVALUATE".equals(config.getMode())) group.setModelVersion(activeModelVersion());
         try { group.setConfigJson(mapper.writeValueAsString(config)); }

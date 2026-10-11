@@ -1,4 +1,4 @@
-package ru.itis.diploma.experiment;
+package ru.itis.diploma.bot;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

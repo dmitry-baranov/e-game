@@ -1,5 +1,7 @@
 package ru.itis.diploma.experiment;
 
+import ru.itis.diploma.bot.BotPolicies;
+
 import freemarker.template.Configuration;
 import freemarker.template.TemplateExceptionHandler;
 import freemarker.core.HTMLOutputFormat;

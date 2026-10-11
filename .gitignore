@@ -29,6 +29,7 @@ effective-settings.xml
 *.log
 __pycache__/
 .venv/
+.env.analytics
 /ml/artifacts/
 *.lck
 *.jar

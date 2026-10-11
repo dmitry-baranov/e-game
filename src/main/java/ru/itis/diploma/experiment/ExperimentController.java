@@ -1,5 +1,8 @@
 package ru.itis.diploma.experiment;
 
+import ru.itis.diploma.bot.BotPolicies;
+import ru.itis.diploma.bot.BotParticipants;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -41,10 +44,7 @@ public class ExperimentController {
         return java.util.stream.IntStream.rangeClosed(1, Math.min(5, config.getTarget())).mapToObj(i -> {
             var s = scenarios.generate(config, i);
             var chosen = java.util.stream.IntStream.range(0, s.bots())
-                .mapToObj(bot -> bot == 0 && "EVALUATE".equals(config.getMode()) ?
-                    (i % 2 == 1 ? "EVAL_RULES" : "MODEL") : config.policies()[(
-                        ("EVALUATE".equals(config.getMode()) ? (i - 1) / 2 + bot - 1 : i - 1 + bot)
-                        + config.policies().length) % config.policies().length])
+                .mapToObj(bot -> BotParticipants.policyFor(config, i, bot))
                 .collect(java.util.stream.Collectors.groupingBy(p -> p, java.util.LinkedHashMap::new,
                     java.util.stream.Collectors.counting()));
             return new Preview(i, Long.toString(s.seed()), s.market(), s.bots(), s.horizon(),

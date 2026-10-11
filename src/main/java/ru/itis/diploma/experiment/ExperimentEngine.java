@@ -3,8 +3,10 @@ package ru.itis.diploma.experiment;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
 import ru.itis.diploma.dto.*;
+import ru.itis.diploma.bot.BotDecisions;
+import ru.itis.diploma.bot.BotParticipants;
+import ru.itis.diploma.bot.BotPolicies;
 import ru.itis.diploma.model.*;
 import ru.itis.diploma.model.enums.GameStatus;
 import ru.itis.diploma.repository.*;
@@ -24,7 +26,7 @@ public class ExperimentEngine {
     private final ExperimentRunRepository runs;
     private final ExperimentSeriesRepository series;
     private final ExperimentScenarios scenarios;
-    private final AccountRepository accounts;
+    private final BotParticipants botParticipants;
     private final ManufacturerRepository manufacturers;
     private final GameRepository games;
     private final GameResultRepository results;
@@ -32,12 +34,9 @@ public class ExperimentEngine {
     private final ManufacturerService manufacturerService;
     private final StrategySnapshotService snapshots;
     private final StrategyTrainingCapture trainingCapture;
-    private final BotPolicies policies;
+    private final BotDecisions botDecisions;
     private final TradingSessionService trading;
     private final ProductionParametersRepository productions;
-    private final BotDecisionLogRepository decisionLogs;
-    private final JdbcTemplate jdbc;
-    private final com.fasterxml.jackson.databind.ObjectMapper mapper;
 
     public Long claim(Long seriesId, ExperimentConfig config) {
         return transactions.execute(tx -> {
@@ -82,26 +81,7 @@ public class ExperimentEngine {
             run.setSeries(group); run.setNumber(number); run.setSeed(scenario.seed());
             run.setMarket(scenario.market()); run.setBots(scenario.bots()); run.setHorizon(scenario.horizon());
             runs.save(run);
-            List<Long> ids = new ArrayList<>();
-            for (int i = 0; i < scenario.bots(); i++) {
-                var account = Account.builder().email("bot-" + seriesId + "-" + number + "-" + i + "@experiment.invalid")
-                    .fullName("Бот " + (i + 1)).password("!disabled!").role(Account.Role.USER).build();
-                ids.add(accounts.save(account).getId());
-            }
-            scenario.game().setAccountIds(ids);
-            // No ordinary UI game limit applies to this isolated deployment.
-            var game = gameService.createGameForExperiment(scenario.game());
-            run.setGame(game);
-            var players = manufacturers.findByGame_Id(game.getId());
-            for (int i = 0; i < players.size(); i++) {
-                var player = players.get(i);
-                int rotation = "EVALUATE".equals(config.getMode()) ? (number - 1) / 2 : number - 1;
-                player.setSelectedStrategy("EVALUATE".equals(config.getMode()) && i == 0 ?
-                    (number % 2 == 1 ? "EVAL_RULES" : "MODEL") :
-                    config.policies()[(rotation + i - ("EVALUATE".equals(config.getMode()) ? 1 : 0)
-                        + config.policies().length) % config.policies().length]);
-                player.setAllowStrategyTraining("COLLECT".equals(config.getMode()));
-            }
+            run.setGame(botParticipants.create(group, config, number, scenario));
             return run.getId();
         });
     }
@@ -128,17 +108,17 @@ public class ExperimentEngine {
                     Long accountId = players.get(i).getAccount().getId();
                     var view = snapshots.snapshot(game.getId(), accountId, competitors);
                     views.put(accountId, view);
-                    proposed.add(decide(run, group, players.get(i), view, i));
+                    proposed.add(botDecisions.decide(run, group, players.get(i), view, i));
                 }
                 trainingCapture.withPreDecisionSnapshots(views, () -> {
                     for (int i = 0; i < players.size(); i++) {
-                        logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
+                        botDecisions.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
                             proposed.get(i), "ACCEPTED", group.getModelVersion());
                         var initial = new InitialProductionParameters();
                         copy(proposed.get(i).action(), initial);
                         initial.setProductionCapacityPerDay(10 + i % 5);
                         manufacturerService.defineInitialProductionParameters(initial, players.get(i).getAccount().getId(), game);
-                        recordDecision(run, proposed.get(i));
+                        botDecisions.recordDecision(run, proposed.get(i));
                     }
                 });
                 game.setStatus(GameStatus.STARTED);
@@ -169,10 +149,10 @@ public class ExperimentEngine {
                     game.getCurrentDay() < run.getHorizon() - 5) {
                     if (competitors == null) competitors = snapshots.visibleCompetitors(players);
                     var view = snapshots.snapshot(game.getId(), player.getAccount().getId(), competitors);
-                    if ("bots-v6".equals(group.getPolicyVersion()) && unchangedAfterSkip(run, player, view)) continue;
+                    if ("bots-v6".equals(group.getPolicyVersion()) && botDecisions.unchangedAfterSkip(run, player, view)) continue;
                     pending.add(i);
                     views.put(player.getAccount().getId(), view);
-                    proposed.add(decide(run, group, player, view, i));
+                    proposed.add(botDecisions.decide(run, group, player, view, i));
                 }
             }
             trainingCapture.withPreDecisionSnapshots(views, () -> {
@@ -180,7 +160,7 @@ public class ExperimentEngine {
                     int i = pending.get(j);
                     var p = proposed.get(j).action();
                     if (group.getPolicyVersion() != null && players.get(i).getCurrentProductCount() > p.getProductCount()) {
-                        logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
+                        botDecisions.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
                             proposed.get(j), "STOCK_SKIP", group.getModelVersion());
                         run.setStockSkips(run.getStockSkips() + 1);
                         continue;
@@ -204,22 +184,22 @@ public class ExperimentEngine {
                                      / players.get(i).getProductionCapacityPerDay())) < 0) ||
                          ("LIMITED_CREDIT_GROWTH".equals(policy) &&
                              shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(20))) > 0))) {
-                        logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
+                        botDecisions.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
                             proposed.get(j), "CREDIT_SKIP", group.getModelVersion());
                         run.setCreditSkips(run.getCreditSkips() + 1);
                         continue;
                     }
                     if (shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(80))) > 0) {
-                        logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
+                        botDecisions.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
                             proposed.get(j), "CREDIT_SKIP", group.getModelVersion());
                         run.setCreditSkips(run.getCreditSkips() + 1);
                         continue;
                     }
                     next.setBusinessCreditAmount(shortfall);
-                    logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
+                    botDecisions.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
                         proposed.get(j), "ACCEPTED", group.getModelVersion());
                     manufacturerService.defineNewProductionParameters(next, players.get(i).getAccount().getId(), game);
-                    recordDecision(run, proposed.get(j));
+                    botDecisions.recordDecision(run, proposed.get(j));
                 }
             });
             int before = game.getCurrentDay();
@@ -240,99 +220,11 @@ public class ExperimentEngine {
             .map(StrategySnapshot.Payment::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private boolean unchangedAfterSkip(ExperimentRun run, Manufacturer player, StrategySnapshot view) {
-        var previous = decisionLogs.findFirstByRunIdAndManufacturerIdOrderByDecisionDayDescIdDesc(
-            run.getId(), player.getId()).orElse(null);
-        if (previous == null || !java.util.Set.of("STOCK_SKIP", "CREDIT_SKIP").contains(previous.getOutcome())) return false;
-        if (view.day() < previous.getDecisionDay() + 3) return true;
-        try {
-            var before = mapper.readTree(previous.getSnapshotJson());
-            if ("STOCK_SKIP".equals(previous.getOutcome()))
-                return view.stock() >= before.path("stock").asInt();
-            return view.balance().compareTo(new BigDecimal(before.path("balance").asText())) <= 0;
-        } catch (com.fasterxml.jackson.core.JsonProcessingException | NumberFormatException e) {
-            return false;
-        }
-    }
-
-    private BotPolicies.Decision decide(ExperimentRun run, ExperimentSeries group, Manufacturer player,
-                                         StrategySnapshot view, int index) {
-        long seed = policySeed(run, group, index);
-        if (!"bots-v6".equals(group.getPolicyVersion()))
-            return policies.decide(view, player.getSelectedStrategy(), seed, index, group.getModelVersion());
-        return policies.decide(view, player.getSelectedStrategy(), seed, index, group.getModelVersion(),
-            observedCycles(player.getId(), view.day()));
-    }
-
-    private List<ObservedCycle> observedCycles(Long manufacturerId, int day) {
-        return jdbc.query("""
-            SELECT p.start_date, p.time_to_market, p.product_count, p.price, p.quality_index, p.assortment,
-                   coalesce((SELECT a.intensity_index FROM advertisement a WHERE a.manufacturer_id=p.manufacturer_id
-                       AND a.start_date=p.start_date+1 ORDER BY a.id DESC LIMIT 1),0) AS ads,
-                   coalesce((SELECT a.end_date-a.start_date+1 FROM advertisement a WHERE a.manufacturer_id=p.manufacturer_id
-                       AND a.start_date=p.start_date+1 ORDER BY a.id DESC LIMIT 1),0) AS ad_days,
-                   coalesce(sum(s.products_sold),0) AS sold,
-                   coalesce(sum(s.products_sold * p.price),0) AS revenue
-            FROM production_parameters p LEFT JOIN statistics_info s ON s.manufacturer_id=p.manufacturer_id
-                 AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market
-            WHERE p.manufacturer_id=? AND p.start_date+p.time_to_market<=?
-            GROUP BY p.id HAVING count(DISTINCT s.trade_date)=p.time_to_market
-            ORDER BY p.start_date
-            """, (rs, row) -> new ObservedCycle(rs.getInt("start_date"), rs.getInt("time_to_market"),
-                rs.getInt("product_count"), rs.getBigDecimal("price"), rs.getBigDecimal("quality_index"),
-                rs.getInt("assortment"), rs.getInt("ads"), rs.getInt("ad_days"), rs.getInt("sold"),
-                rs.getBigDecimal("revenue")), manufacturerId, day);
-    }
-
     private static void copy(CommonProductionParameters source, CommonProductionParameters target) {
         target.setProductCount(source.getProductCount()); target.setPrice(source.getPrice());
         target.setQualityIndex(source.getQualityIndex()); target.setAssortment(source.getAssortment());
         target.setAdvertisingIntensityIndex(source.getAdvertisingIntensityIndex());
         target.setAdvertisingDays(source.getAdvertisingDays());
-    }
-
-    private void recordDecision(ExperimentRun run, BotPolicies.Decision decision) {
-        if (decision.usedModel()) run.setModelDecisions(run.getModelDecisions() + 1);
-        if (decision.fallback()) run.setModelFallbacks(run.getModelFallbacks() + 1);
-    }
-
-    private void logDecision(ExperimentRun run, Manufacturer player, StrategySnapshot snapshot,
-                             BotPolicies.Decision decision, String outcome, String modelVersion) {
-        try {
-            var log = new BotDecisionLog();
-            log.setRun(run);
-            log.setManufacturer(player);
-            log.setDecisionDay(snapshot.day());
-            log.setPolicy(player.getSelectedStrategy());
-            log.setModelVersion(modelVersion);
-            log.setOutcome(outcome);
-            log.setUsedModel(decision.usedModel());
-            log.setFallback(decision.fallback());
-            log.setFallbackReason(decision.fallbackReason());
-            log.setRecommendationSource(decision.usedModel() ? "MODEL" :
-                decision.fallback() ? "RULES_FALLBACK" : player.getSelectedStrategy());
-            log.setSnapshotJson(mapper.writeValueAsString(snapshot));
-            log.setProposedActionJson(mapper.writeValueAsString(decision.action()));
-            log.setCandidatesJson(mapper.writeValueAsString(decision.candidates()));
-            decisionLogs.save(log);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new IllegalStateException("Не удалось сохранить решение бота", e);
-        }
-    }
-
-    /** Distinct deterministic RNG for bots: do not hand them the world's scenario seed. */
-    private long policySeed(ExperimentRun run, ExperimentSeries group, int index) {
-        if (group.getPolicyVersion() == null ||
-            (!group.getPolicyVersion().equals("bots-v5") && !group.getPolicyVersion().equals("bots-v6")))
-            return run.getSeed(); // Preserve previously started simulations.
-        try {
-            var digest = java.security.MessageDigest.getInstance("SHA-256");
-            digest.update("bot-policy-v1".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            var bytes = java.nio.ByteBuffer.allocate(16).putLong(run.getSeed()).putLong(index).array();
-            return java.nio.ByteBuffer.wrap(digest.digest(bytes)).getLong();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 недоступен", e);
-        }
     }
 
     private void completePair(ExperimentRun run, ExperimentSeries group, boolean valid) {

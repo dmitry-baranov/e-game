@@ -1,5 +1,7 @@
 package ru.itis.diploma.experiment;
 
+import ru.itis.diploma.bot.BotPolicies;
+
 import lombok.Data;
 
 @Data
@@ -14,7 +16,7 @@ public class ExperimentConfig {
     private int maxAttempts = 0;
     private String mode = "COLLECT";
     private String policyMix = String.join(",", BotPolicies.NAMES);
-    private String marketMix = "BUDGET,COMPETITIVE,ADVERTISING";
+    private String marketMix = String.join(",", ExperimentScenarios.MARKETS);
 
     public String[] policies() { return java.util.Arrays.stream(policyMix.split(",", -1)).map(String::trim).toArray(String[]::new); }
     public String[] markets() { return java.util.Arrays.stream(marketMix.split(",", -1)).map(String::trim).toArray(String[]::new); }
@@ -33,7 +35,7 @@ public class ExperimentConfig {
             java.util.Arrays.stream(policies()).anyMatch(p ->
                 java.util.Arrays.stream(BotPolicies.NAMES).noneMatch(p::equals)) ||
             java.util.Arrays.stream(markets()).anyMatch(m ->
-                !java.util.Set.of("BUDGET", "COMPETITIVE", "ADVERTISING").contains(m)) ||
+                !ExperimentScenarios.MARKETS.contains(m)) ||
             java.util.Arrays.stream(policies()).distinct().count() != policies().length ||
             java.util.Arrays.stream(markets()).distinct().count() != markets().length)
             throw new IllegalArgumentException("Неизвестный или повторённый рынок/политика");

@@ -11,7 +11,7 @@ services:
       - ./observability/grafana:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
     depends_on:
       experiment-db:
         condition: service_healthy

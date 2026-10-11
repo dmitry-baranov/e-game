@@ -51,9 +51,9 @@
                 ${card.modelLowSales} / ${card.modelTypicalSales} / ${card.modelHighSales}. Диапазон оценён на отложенных партиях; изменение цены или рекламы может дать другой результат.</p></#if>
             <#if card.lowSales??><p>Наблюдений: ${card.observations}; низкие / обычные / высокие продажи в сутки:
                 ${card.lowSales} / ${card.normalSales} / ${card.highSales}. Это не прогноз спроса при новых условиях.</p>
-                <#if card.lowCash??><p>Условные деньги к концу цикла после известной оценки платежей и налога:
-                    ${card.lowCash} / ${card.normalCash} / ${card.highCash}. Новые долги и неизвестные расходы не учтены.</p></#if>
-            <#else><p>Наблюдений: ${card.observations}; недостаточно данных для числового прогноза продаж.</p></#if>
+            <#elseif !card.modelTypicalSales??><p>Наблюдений: ${card.observations}; недостаточно истории для числовой оценки по правилам.</p></#if>
+            <#if card.lowCash??><p>Условные деньги к концу цикла после известной оценки платежей и налога:
+                ${card.lowCash} / ${card.normalCash} / ${card.highCash}. Новые долги и неизвестные расходы не учтены.</p></#if>
             <#if card.key != 'PERSONAL:null'>
                 <form method="post" action="/game/${gameId}/strategies/select">
                     <input type="hidden" name="course" value="${card.key}">
