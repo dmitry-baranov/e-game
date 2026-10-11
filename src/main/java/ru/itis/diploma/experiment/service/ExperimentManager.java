@@ -202,27 +202,36 @@ public class ExperimentManager {
                 for (int i = 0; i < active.size(); i++) {
                     if (!gameSlots.tryAcquire()) return;
                     var group = active.get((start + i) % active.size());
-                    try {
-                        ExperimentConfig config = mapper.readValue(group.getConfigJson(), ExperimentConfig.class);
-                        Long id = engine.claim(group.getId(), config);
-                        if (id == null) { gameSlots.release(); continue; }
-                        try {
-                            workers.submit(() -> {
-                                try { execute(id); }
-                                finally { gameSlots.release(); }
-                            });
-                        } catch (java.util.concurrent.RejectedExecutionException e) {
-                            fail(id, e); // The claimed game must not remain RUNNING without a worker.
-                            throw e;
-                        }
-                        claimed = true;
-                    } catch (Exception e) {
-                        gameSlots.release();
-                        log.error("Ошибка запуска игры серии {}", group.getId(), e);
-                    }
+                    if (startGame(group)) claimed = true;
                 }
             } while (claimed);
         } catch (Exception e) { log.error("Ошибка планировщика экспериментов", e); }
+    }
+
+    /** Занятый слот либо передаётся рабочему потоку, либо освобождается здесь. */
+    private boolean startGame(ExperimentSeries group) {
+        try {
+            ExperimentConfig config = mapper.readValue(group.getConfigJson(), ExperimentConfig.class);
+            Long id = engine.claim(group.getId(), config);
+            if (id == null) {
+                gameSlots.release();
+                return false;
+            }
+            try {
+                workers.submit(() -> {
+                    try { execute(id); }
+                    finally { gameSlots.release(); }
+                });
+            } catch (java.util.concurrent.RejectedExecutionException e) {
+                fail(id, e); // Выданная игра не должна оставаться RUNNING без потока.
+                throw e;
+            }
+            return true;
+        } catch (Exception e) {
+            gameSlots.release();
+            log.error("Ошибка запуска игры серии {}", group.getId(), e);
+            return false;
+        }
     }
 
     private void execute(Long id) {

@@ -26,7 +26,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public List<AccountDto> getAccountsForNewGame() {
-        return AccountDto.from(accountRepository.findAllByRoleNot(Account.Role.ADMIN));
+        return AccountDto.from(accountRepository.findGameParticipants(Account.Role.ADMIN));
     }
 
     @Override

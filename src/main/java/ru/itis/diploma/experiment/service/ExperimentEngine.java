@@ -60,20 +60,7 @@ public class ExperimentEngine {
         return transactions.execute(tx -> {
             var group = series.lockById(seriesId).orElseThrow();
             if (!"RUNNING".equals(group.getStatus())) return null;
-            if ("EVALUATE".equals(group.getMode())) {
-                for (var waiting : runs.findBySeriesIdOrderByNumberDesc(seriesId)) {
-                    if (!"WAITING_PAIR".equals(waiting.getStatus())) continue;
-                    int other = waiting.getNumber() % 2 == 0 ? waiting.getNumber() - 1 : waiting.getNumber() + 1;
-                    runs.findBySeriesIdAndNumber(seriesId, other).ifPresent(partner -> {
-                        if ("WAITING_PAIR".equals(partner.getStatus())) {
-                            waiting.setStatus("COMPLETED"); partner.setStatus("COMPLETED");
-                        } else if ("INCOMPLETE".equals(partner.getStatus()) ||
-                            "ERROR".equals(partner.getStatus()) || "CANCELLED".equals(partner.getStatus()))
-                            waiting.setStatus("INCOMPLETE");
-                    });
-                }
-                runs.flush();
-            }
+            if ("EVALUATE".equals(group.getMode())) reconcileWaitingPairs(seriesId);
             long done = runs.countBySeriesIdAndStatus(seriesId, "COMPLETED");
             long active = runs.countBySeriesIdAndStatus(seriesId, "RUNNING");
             long waiting = runs.countBySeriesIdAndStatus(seriesId, "WAITING_PAIR");
@@ -92,17 +79,42 @@ public class ExperimentEngine {
                 if (active == 0) group.setStatus("EXHAUSTED");
                 return null;
             }
-            int number = group.getNextNumber();
-            group.setNextNumber(number + 1);
-            var scenario = scenarios.generate(config, number, group.getGeneratorVersion());
-            var run = new ExperimentRun();
-            run.setSeries(group); run.setNumber(number); run.setSeed(scenario.seed());
-            run.setMarket(scenario.market()); run.setBots(scenario.bots()); run.setHorizon(scenario.horizon());
-            runs.save(run);
-            run.setGame(botParticipants.create(group.getId(), config.getMode(), config.policies(),
-                number, scenario.bots(), scenario.game()));
-            return run.getId();
+            return createRun(group, config).getId();
         });
+    }
+
+    private void reconcileWaitingPairs(Long seriesId) {
+        for (var waiting : runs.findBySeriesIdOrderByNumberDesc(seriesId)) {
+            if (!"WAITING_PAIR".equals(waiting.getStatus())) continue;
+            int partnerNumber = waiting.getNumber() % 2 == 0 ? waiting.getNumber() - 1 : waiting.getNumber() + 1;
+            runs.findBySeriesIdAndNumber(seriesId, partnerNumber).ifPresent(partner -> {
+                if ("WAITING_PAIR".equals(partner.getStatus())) {
+                    waiting.setStatus("COMPLETED");
+                    partner.setStatus("COMPLETED");
+                } else if ("INCOMPLETE".equals(partner.getStatus()) ||
+                    "ERROR".equals(partner.getStatus()) || "CANCELLED".equals(partner.getStatus())) {
+                    waiting.setStatus("INCOMPLETE");
+                }
+            });
+        }
+        runs.flush();
+    }
+
+    private ExperimentRun createRun(ExperimentSeries group, ExperimentConfig config) {
+        int number = group.getNextNumber();
+        group.setNextNumber(number + 1);
+        var scenario = scenarios.generate(config, number, group.getGeneratorVersion());
+        var run = new ExperimentRun();
+        run.setSeries(group);
+        run.setNumber(number);
+        run.setSeed(scenario.seed());
+        run.setMarket(scenario.market());
+        run.setBots(scenario.bots());
+        run.setHorizon(scenario.horizon());
+        runs.save(run);
+        run.setGame(botParticipants.create(config.getMode(), config.policies(),
+            number, scenario.bots(), scenario.game()));
+        return run;
     }
 
     /**
@@ -117,125 +129,16 @@ public class ExperimentEngine {
             if (!"RUNNING".equals(run.getStatus())) return false;
             var group = series.findById(run.getSeries().getId()).orElseThrow();
             if (!"RUNNING".equals(group.getStatus())) {
-                if ("STOPPED".equals(group.getStatus())) {
-                    run.setStatus("CANCELLED");
-                    if (run.getGame().getStatus() != GameStatus.FINISHED) gameSimulation.finish(run.getGame());
-                } else run.setStatus("QUEUED");
+                stopOrQueue(run, group);
                 return false;
             }
             Game game = games.lockById(run.getGame().getId()).orElseThrow();
-            if (game.getStatus() == GameStatus.CREATED) {
-                // На старте каждый бот получает снимок ещё не открытой игры;
-                // все предложения вычисляются до сохранения первого производства.
-                var players = ordered(game.getId());
-                var competitors = snapshots.visibleCompetitors(players);
-                var proposed = new ArrayList<BotPolicies.Decision>();
-                Map<Long, StrategySnapshot> views = new HashMap<>();
-                for (int i = 0; i < players.size(); i++) {
-                    Long accountId = players.get(i).getAccount().getId();
-                    var view = snapshots.snapshot(game.getId(), accountId, competitors);
-                    views.put(accountId, view);
-                    proposed.add(botDecisions.decide(run.getSeed(), group.getPolicyVersion(),
-                        group.getModelVersion(), players.get(i), view, i));
-                }
-                trainingCapture.withPreDecisionSnapshots(views, () -> {
-                    for (int i = 0; i < players.size(); i++) {
-                        journal.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
-                            proposed.get(i), "ACCEPTED", group.getModelVersion());
-                        var initial = new InitialProductionParameters();
-                        copy(proposed.get(i).action(), initial);
-                        initial.setProductionCapacityPerDay(10 + i % 5);
-                        manufacturerService.defineInitialProductionParameters(initial, players.get(i).getAccount().getId(), game);
-                        journal.recordDecision(run, proposed.get(i));
-                    }
-                });
-                game.setStatus(GameStatus.STARTED);
-            }
+            if (game.getStatus() == GameStatus.CREATED) startGame(run, group, game);
             if (game.getCurrentDay() >= run.getHorizon()) {
-                gameSimulation.finish(game);
-                run.setCompletedDays(game.getCurrentDay());
-                var counts = ordered(game.getId()).stream().mapToLong(m -> productions.countByManufacturerId(m.getId())).toArray();
-                run.setCycles((int) java.util.Arrays.stream(counts).sum());
-                run.setBestResult(results.findByGameId(game.getId()).stream().map(GameResult::getResult)
-                    .max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO));
-                // COMPLETED требует хотя бы две записи производства у КАЖДОГО бота.
-                // Полнота дней учебной метки — отдельная проверка при построении отчёта.
-                boolean enough = java.util.Arrays.stream(counts).allMatch(n -> n >= 2);
-                boolean valid = enough && (!"MODEL".equals(ordered(game.getId()).get(0).getSelectedStrategy()) ||
-                    run.getModelDecisions() > 0);
-                completePair(run, series.lockById(group.getId()).orElseThrow(), valid);
+                finishGame(run, group, game);
                 return false;
             }
-            // Сначала собираем разрешённые снимки ВСЕХ готовых к решению ботов;
-            // сервер ещё не применил ни один новый план этого дня.
-            var players = ordered(game.getId());
-            var pending = new ArrayList<Integer>();
-            var proposed = new ArrayList<BotPolicies.Decision>();
-            Map<Long, StrategySnapshot> views = new HashMap<>();
-            Map<Long, StrategySnapshot.Competitor> competitors = null;
-            for (int i = 0; i < players.size(); i++) {
-                var player = players.get(i);
-                var last = manufacturerService.getLastProductionParameters(player.getId()).orElseThrow();
-                if (game.getCurrentDay() >= last.getStartDate() + last.getTimeToMarket() + 1 &&
-                    game.getCurrentDay() < run.getHorizon() - 5) {
-                    if (competitors == null) competitors = snapshots.visibleCompetitors(players);
-                    var view = snapshots.snapshot(game.getId(), player.getAccount().getId(), competitors);
-                    if ("bots-v6".equals(group.getPolicyVersion()) && journal.unchangedAfterSkip(run, player, view)) continue;
-                    pending.add(i);
-                    views.put(player.getAccount().getId(), view);
-                    proposed.add(botDecisions.decide(run.getSeed(), group.getPolicyVersion(),
-                        group.getModelVersion(), player, view, i));
-                }
-            }
-            trainingCapture.withPreDecisionSnapshots(views, () -> {
-                for (int j = 0; j < pending.size(); j++) {
-                    int i = pending.get(j);
-                    var p = proposed.get(j).action();
-                    // STOCK_SKIP/CREDIT_SKIP фиксируют предложенный, но НЕ выполненный план.
-                    // Для старых policyVersion сохраняется историческая проверка склада.
-                    if (group.getPolicyVersion() != null && players.get(i).getCurrentProductCount() > p.getProductCount()) {
-                        journal.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
-                            proposed.get(j), "STOCK_SKIP", group.getModelVersion());
-                        run.setStockSkips(run.getStockSkips() + 1);
-                        continue;
-                    }
-                    var next = new NewProductionParameters();
-                    copy(p, next);
-                    BigDecimal cost = game.getBaseCostPrice().multiply(p.getQualityIndex())
-                        .multiply(BigDecimal.valueOf(p.getProductCount()))
-                        .add(game.getBaseAdvertisementPrice().multiply(BigDecimal.valueOf(p.getAdvertisingIntensityIndex() * p.getAdvertisingDays())));
-                    var balance = players.get(i).getBalance();
-                    // Conservative cap on borrowing; unaffordable cycles are explicitly skipped.
-                    BigDecimal shortfall = cost.subtract(balance).max(BigDecimal.ZERO);
-                    String policy = players.get(i).getSelectedStrategy();
-                    if ("bots-v6".equals(group.getPolicyVersion()) &&
-                        (("DEBT_AVOID".equals(policy) && shortfall.signum() > 0) ||
-                         ("CASH_RESERVE".equals(policy) &&
-                             balance.subtract(cost).compareTo(balance.max(BigDecimal.ZERO).multiply(new BigDecimal("0.25"))) < 0) ||
-                         ("PAYMENT_AWARE".equals(policy) &&
-                             balance.subtract(cost).compareTo(viewPaymentReserve(views.get(players.get(i).getAccount().getId()),
-                                 game.getCurrentDay() + (p.getProductCount() + players.get(i).getProductionCapacityPerDay() - 1)
-                                     / players.get(i).getProductionCapacityPerDay())) < 0) ||
-                         ("LIMITED_CREDIT_GROWTH".equals(policy) &&
-                             shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(20))) > 0))) {
-                        journal.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
-                            proposed.get(j), "CREDIT_SKIP", group.getModelVersion());
-                        run.setCreditSkips(run.getCreditSkips() + 1);
-                        continue;
-                    }
-                    if (shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(80))) > 0) {
-                        journal.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
-                            proposed.get(j), "CREDIT_SKIP", group.getModelVersion());
-                        run.setCreditSkips(run.getCreditSkips() + 1);
-                        continue;
-                    }
-                    next.setBusinessCreditAmount(shortfall);
-                    journal.logDecision(run, players.get(i), views.get(players.get(i).getAccount().getId()),
-                        proposed.get(j), "ACCEPTED", group.getModelVersion());
-                    manufacturerService.defineNewProductionParameters(next, players.get(i).getAccount().getId(), game);
-                    journal.recordDecision(run, proposed.get(j));
-                }
-            });
+            decideAndApplyProduction(run, group, game);
             int before = game.getCurrentDay();
             // Обычный торговый сервис проводит покупателя, кредиты, налоги и продажи.
             // Решения, платёжные записи и статистика дня коммитятся вместе.
@@ -245,6 +148,133 @@ public class ExperimentEngine {
             run.setCompletedDays(game.getCurrentDay());
             return true;
         }));
+    }
+
+    private void stopOrQueue(ExperimentRun run, ExperimentSeries group) {
+        if (!"STOPPED".equals(group.getStatus())) {
+            run.setStatus("QUEUED");
+            return;
+        }
+        run.setStatus("CANCELLED");
+        if (run.getGame().getStatus() != GameStatus.FINISHED) gameSimulation.finish(run.getGame());
+    }
+
+    private record ProposedDecision(Manufacturer player, StrategySnapshot view,
+                                    BotPolicies.Decision decision, int index) {}
+
+    private ProposedDecision propose(ExperimentRun run, ExperimentSeries group,
+                                     Manufacturer player, StrategySnapshot view, int index) {
+        return new ProposedDecision(player, view, botDecisions.decide(run.getSeed(), group.getPolicyVersion(),
+            group.getModelVersion(), player, view, index), index);
+    }
+
+    private void startGame(ExperimentRun run, ExperimentSeries group, Game game) {
+        var players = ordered(game.getId());
+        var competitors = snapshots.visibleCompetitors(players);
+        var proposed = new ArrayList<ProposedDecision>();
+        Map<Long, StrategySnapshot> views = new HashMap<>();
+        // Решения всех ботов вычисляются до применения первого производства.
+        for (int i = 0; i < players.size(); i++) {
+            var player = players.get(i);
+            var view = snapshots.snapshot(game.getId(), player.getAccount().getId(), competitors);
+            views.put(player.getAccount().getId(), view);
+            proposed.add(propose(run, group, player, view, i));
+        }
+        trainingCapture.withPreDecisionSnapshots(views, () -> {
+            for (var choice : proposed) {
+                journal.logDecision(run, choice.player(), choice.view(), choice.decision(), "ACCEPTED", group.getModelVersion());
+                var initial = new InitialProductionParameters();
+                copy(choice.decision().action(), initial);
+                initial.setProductionCapacityPerDay(10 + choice.index() % 5);
+                manufacturerService.defineInitialProductionParameters(initial, choice.player().getAccount().getId(), game);
+                journal.recordDecision(run, choice.decision());
+            }
+        });
+        game.setStatus(GameStatus.STARTED);
+    }
+
+    private void finishGame(ExperimentRun run, ExperimentSeries group, Game game) {
+        gameSimulation.finish(game);
+        run.setCompletedDays(game.getCurrentDay());
+        var players = ordered(game.getId());
+        var counts = players.stream().mapToLong(player -> productions.countByManufacturerId(player.getId())).toArray();
+        run.setCycles((int) java.util.Arrays.stream(counts).sum());
+        run.setBestResult(results.findByGameId(game.getId()).stream().map(GameResult::getResult)
+            .max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO));
+        // COMPLETED требует двух производств у каждого и применения модели в модельной паре.
+        boolean enough = java.util.Arrays.stream(counts).allMatch(count -> count >= 2);
+        boolean valid = enough && (!"MODEL".equals(players.get(0).getSelectedStrategy()) || run.getModelDecisions() > 0);
+        completePair(run, series.lockById(group.getId()).orElseThrow(), valid);
+    }
+
+    private void decideAndApplyProduction(ExperimentRun run, ExperimentSeries group, Game game) {
+        var players = ordered(game.getId());
+        var proposed = new ArrayList<ProposedDecision>();
+        Map<Long, StrategySnapshot> views = new HashMap<>();
+        Map<Long, StrategySnapshot.Competitor> competitors = null;
+        // Сначала собираем все снимки и решения; до этого момента никто не делает ход.
+        for (int i = 0; i < players.size(); i++) {
+            var player = players.get(i);
+            var last = manufacturerService.getLastProductionParameters(player.getId()).orElseThrow();
+            if (game.getCurrentDay() < last.getStartDate() + last.getTimeToMarket() + 1 ||
+                game.getCurrentDay() >= run.getHorizon() - 5) continue;
+            if (competitors == null) competitors = snapshots.visibleCompetitors(players);
+            var view = snapshots.snapshot(game.getId(), player.getAccount().getId(), competitors);
+            if ("bots-v6".equals(group.getPolicyVersion()) && journal.unchangedAfterSkip(run, player, view)) continue;
+            views.put(player.getAccount().getId(), view);
+            proposed.add(propose(run, group, player, view, i));
+        }
+        trainingCapture.withPreDecisionSnapshots(views, () -> {
+            for (var choice : proposed) applyProduction(run, group, game, choice);
+        });
+    }
+
+    private void applyProduction(ExperimentRun run, ExperimentSeries group, Game game, ProposedDecision choice) {
+        var player = choice.player();
+        var plan = choice.decision().action();
+        // Старые версии политик сохраняют историческое поведение без проверки склада.
+        if (group.getPolicyVersion() != null && player.getCurrentProductCount() > plan.getProductCount()) {
+            journal.logDecision(run, player, choice.view(), choice.decision(), "STOCK_SKIP", group.getModelVersion());
+            run.setStockSkips(run.getStockSkips() + 1);
+            return;
+        }
+        BigDecimal cost = game.getBaseCostPrice().multiply(plan.getQualityIndex())
+            .multiply(BigDecimal.valueOf(plan.getProductCount()))
+            .add(game.getBaseAdvertisementPrice().multiply(BigDecimal.valueOf(
+                plan.getAdvertisingIntensityIndex() * plan.getAdvertisingDays())));
+        BigDecimal shortfall = cost.subtract(player.getBalance()).max(BigDecimal.ZERO);
+        if (rejectForCredit(group, game, choice, cost, shortfall)) {
+            journal.logDecision(run, player, choice.view(), choice.decision(), "CREDIT_SKIP", group.getModelVersion());
+            run.setCreditSkips(run.getCreditSkips() + 1);
+            return;
+        }
+        var next = new NewProductionParameters();
+        copy(plan, next);
+        next.setBusinessCreditAmount(shortfall);
+        journal.logDecision(run, player, choice.view(), choice.decision(), "ACCEPTED", group.getModelVersion());
+        manufacturerService.defineNewProductionParameters(next, player.getAccount().getId(), game);
+        journal.recordDecision(run, choice.decision());
+    }
+
+    private boolean rejectForCredit(ExperimentSeries group, Game game, ProposedDecision choice,
+                                    BigDecimal cost, BigDecimal shortfall) {
+        var player = choice.player();
+        var balance = player.getBalance();
+        if (shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(80))) > 0) return true;
+        if (!"bots-v6".equals(group.getPolicyVersion())) return false;
+        if (player.getSelectedStrategy() == null) return false;
+        return switch (player.getSelectedStrategy()) {
+            case "DEBT_AVOID" -> shortfall.signum() > 0;
+            case "CASH_RESERVE" -> balance.subtract(cost)
+                .compareTo(balance.max(BigDecimal.ZERO).multiply(new BigDecimal("0.25"))) < 0;
+            case "PAYMENT_AWARE" -> {
+                int days = (choice.decision().action().getProductCount() + player.getProductionCapacityPerDay() - 1)
+                    / player.getProductionCapacityPerDay();
+                yield balance.subtract(cost).compareTo(viewPaymentReserve(choice.view(), game.getCurrentDay() + days)) < 0;
+            }
+            case "LIMITED_CREDIT_GROWTH" -> shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(20))) > 0;
+            default -> false;
+        };
     }
 
     private List<Manufacturer> ordered(Long gameId) {

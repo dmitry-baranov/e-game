@@ -158,9 +158,10 @@
 
                     <div class="form-outline mb-3" style="margin-top: 10px">
                         <h5>Выберите участников игры из списка:</h5>
+                        <p class="text-muted">Аккаунты экспериментальных ботов создаются автоматически и здесь не отображаются.</p>
                         <select id="accounts" class="form-control form-control-lg" multiple required name="accountIds">
                             <#list accounts as account>
-                                <option value="${account.id}">${account.fullName!}</option>
+                                <option value="${account.id}">${account.fullName!} (${account.email!})</option>
                             </#list>
                         </select>
                     </div>
