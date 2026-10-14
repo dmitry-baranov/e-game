@@ -30,6 +30,14 @@ public class ExperimentPair {
     private String market;
     private String status = "PENDING";
 
+    /**
+     * Завершает одну половину оценочной пары и согласует статусы обеих попыток.
+     * Пара становится завершённой только после успешного окончания обоих участников.
+     *
+     * @param run завершаемая попытка
+     * @param members все попытки, входящие в пару
+     * @param valid признак пригодности результата завершаемой попытки
+     */
     public void finish(ExperimentRun run, List<ExperimentRun> members, boolean valid) {
         var partner = members.stream().filter(member -> member != run).findFirst().orElse(null);
         if (!valid || "INCOMPLETE".equals(status) || partner != null && isUnsuccessful(partner.getStatus())) {
@@ -44,12 +52,23 @@ public class ExperimentPair {
         }
     }
 
+    /**
+     * Помечает пару неполной и аннулирует ожидающие вторую половину попытки.
+     *
+     * @param members все попытки, входящие в пару
+     */
     public void invalidate(List<ExperimentRun> members) {
         status = "INCOMPLETE";
         members.stream().filter(member -> "WAITING_PAIR".equals(member.getStatus()))
             .forEach(member -> member.setStatus("INCOMPLETE"));
     }
 
+    /**
+     * Проверяет, исключает ли статус попытки успешное завершение пары.
+     *
+     * @param runStatus статус попытки
+     * @return {@code true} для неполной, ошибочной или отменённой попытки
+     */
     private boolean isUnsuccessful(String runStatus) {
         return "INCOMPLETE".equals(runStatus) || "ERROR".equals(runStatus) || "CANCELLED".equals(runStatus);
     }

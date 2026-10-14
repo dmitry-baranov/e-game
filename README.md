@@ -6,7 +6,7 @@
 
 ## Быстрый запуск через Docker
 
-Нужны Docker и Docker Compose (`docker compose`). Свободными должны быть порты **8080** (приложение) и **5435** (PostgreSQL). Java и Maven на компьютере не требуются.
+Нужны Docker и Docker Compose (`docker compose`). Свободными должны быть порты **8080** (приложение) и **5436** (PostgreSQL). Java и Maven на компьютере не требуются.
 
 ```bash
 docker compose up --build -d
@@ -19,7 +19,7 @@ docker compose ps
 - вход: <http://localhost:8080/sign-in>;
 - профиль после авторизации: <http://localhost:8080/profile>.
 
-Compose поднимает `db`, `app` и `ml`, дожидается готовности базы перед запуском приложения. Внутри сети Compose приложение подключается к `db:5432/diploma`, а за прогнозами — к `ml:8090`; с компьютера база доступна на `localhost:5435`. Имя базы, пользователь и пароль для локального запуска заданы в `compose.yml` (`diploma`, `postgres`, `postgres`).
+Compose поднимает `db`, `app` и `ml`, дожидается готовности базы перед запуском приложения. Внутри сети Compose приложение подключается к `db:5432/diploma`, а за прогнозами — к `ml:8090`; с компьютера база доступна на `localhost:5436`. Имя базы, пользователь и пароль для локального запуска заданы в `compose.yml` (`diploma`, `postgres`, `postgres`).
 
 Полезные команды:
 
@@ -163,7 +163,7 @@ docker compose up -d db
 java -jar target/diploma-0.1.jar
 ```
 
-При запуске JAR вне Docker настройки `src/main/resources/application.properties` по умолчанию используют `localhost:5435/diploma`, пользователя/пароль `postgres`/`postgres` и **порт приложения 80**. Чтобы запускать без прав на порт 80, задайте порт явно:
+При запуске JAR вне Docker настройки `src/main/resources/application.properties` по умолчанию используют `localhost:5436/diploma`, пользователя/пароль `postgres`/`postgres` и **порт приложения 80**. Чтобы запускать без прав на порт 80, задайте порт явно:
 
 ```bash
 SERVER_PORT=8080 java -jar target/diploma-0.1.jar

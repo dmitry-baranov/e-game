@@ -44,16 +44,11 @@ class ExperimentScenariosTest {
     }
 
     @Test
-    void evaluationUsesSameWorldForBothPolicies() {
+    void evaluationCannotBeStartedWithoutRecommendationPolicies() {
         var c = new ExperimentConfig();
         c.setMode("EVALUATE");
-        var rules = generator.generate(c, 1);
-        var model = generator.generate(c, 2);
-        assertEquals(rules.seed(), model.seed());
-        assertEquals(rules.horizon(), model.horizon());
-        assertEquals(rules.game().getPurchaseLimit(), model.game().getPurchaseLimit());
-        c.setTarget(3);
         assertThrows(IllegalArgumentException.class, c::validate);
+        assertThrows(IllegalArgumentException.class, () -> generator.generate(c, 1));
     }
 
     @Test
@@ -134,22 +129,4 @@ class ExperimentScenariosTest {
         assertThrows(IllegalArgumentException.class, c::validate);
     }
 
-    @Test
-    void evaluationPairsUseIdenticalWorldsForEveryNewMarket() {
-        var c = new ExperimentConfig();
-        c.setMode("EVALUATE");
-        for (String market : ExperimentScenarios.MARKETS.subList(3, 8)) {
-            c.setMarketMix(market);
-            var rules = generator.generate(c, 1);
-            var model = generator.generate(c, 2);
-            assertEquals(rules.seed(), model.seed());
-            assertEquals(rules.market(), model.market());
-            assertEquals(rules.horizon(), model.horizon());
-            // Only the display name differs: the two games share every buyer/financing parameter.
-            var displayName = model.game().getName();
-            model.game().setName(rules.game().getName());
-            assertEquals(rules.game(), model.game());
-            model.game().setName(displayName);
-        }
-    }
 }

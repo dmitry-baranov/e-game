@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 /**
  * Одна попытка серии и её реальная игра. completedDays позволяет продолжить день
- * после паузы; INCOMPLETE означает непрохождение критерия полноты, ERROR — сбой.
+ * после паузы; INCOMPLETE означает непригодную оценочную пару, ERROR — сбой.
  * modelDecisions считает только принятые планы модели, тогда как журнал решений
  * хранит и отклонённые предложения. bestResult — лучший итог ПОСЛЕ долгов.
  */
@@ -42,9 +42,38 @@ public class ExperimentRun {
     @Column(columnDefinition = "text")
     private String error;
 
+    /**
+     * Возвращает число принятых решений модели, трактуя старое значение {@code null} как ноль.
+     *
+     * @return число решений модели
+     */
     public int getModelDecisions() { return modelDecisions == null ? 0 : modelDecisions; }
+
+    /**
+     * Возвращает число откатов от модели к резервной политике, трактуя {@code null} как ноль.
+     *
+     * @return число резервных решений
+     */
     public int getModelFallbacks() { return modelFallbacks == null ? 0 : modelFallbacks; }
+
+    /**
+     * Возвращает число попыток принять производственное решение, трактуя {@code null} как ноль.
+     *
+     * @return число попыток принятия решения
+     */
     public int getAttempts() { return attempts == null ? 0 : attempts; }
+
+    /**
+     * Возвращает число пропусков из-за товарного запаса, трактуя {@code null} как ноль.
+     *
+     * @return число пропусков из-за запаса
+     */
     public int getStockSkips() { return stockSkips == null ? 0 : stockSkips; }
+
+    /**
+     * Возвращает число пропусков из-за кредитных ограничений, трактуя {@code null} как ноль.
+     *
+     * @return число пропусков из-за кредита
+     */
     public int getCreditSkips() { return creditSkips == null ? 0 : creditSkips; }
 }
