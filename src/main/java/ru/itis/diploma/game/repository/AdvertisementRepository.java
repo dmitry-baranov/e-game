@@ -14,4 +14,6 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
 
     Optional<Advertisement> findByManufacturerIdAndStartDate(Long manufacturerId, Integer startDate);
 
+    List<Advertisement> findByManufacturer_Game_IdOrderByStartDateAscIdAsc(Long gameId);
+
 }

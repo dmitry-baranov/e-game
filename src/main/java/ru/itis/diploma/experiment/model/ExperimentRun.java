@@ -13,12 +13,16 @@ import java.math.BigDecimal;
  */
 @Entity @Getter @Setter
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"series_id", "number"}),
-       indexes = @Index(columnList = "game_id"))
+       indexes = {@Index(columnList = "game_id"), @Index(columnList = "pair_id"),
+           @Index(columnList = "series_id,status,number")})
 public class ExperimentRun {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(optional = false)
     private ExperimentSeries series;
+    @ManyToOne
+    @JoinColumn(name = "pair_id")
+    private ExperimentPair pair;
     private int number;
     private long seed;
     private String status = "RUNNING";

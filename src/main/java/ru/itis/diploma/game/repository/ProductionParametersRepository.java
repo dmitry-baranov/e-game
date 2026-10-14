@@ -10,5 +10,6 @@ public interface ProductionParametersRepository extends JpaRepository<Production
     List<ProductionParameters> findByManufacturerId(Long manufacturerId);
     Optional<ProductionParameters> findFirstByManufacturerIdOrderByStartDateDescIdDesc(Long manufacturerId);
     long countByManufacturerId(Long manufacturerId);
+    List<ProductionParameters> findByManufacturer_Game_IdOrderByStartDateAscIdAsc(Long gameId);
 
 }

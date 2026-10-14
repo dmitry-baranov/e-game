@@ -3,7 +3,6 @@ package ru.itis.diploma.experiment.analytics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,11 +29,11 @@ import java.util.Map;
 @PreAuthorize("hasAuthority('ADMIN')")
 @ConditionalOnProperty(name = "experiment.enabled", havingValue = "true")
 public class BotAnalyticsController {
-    private final JdbcTemplate jdbc;
     private final ExperimentRunRepository runs;
     private final ExperimentSeriesRepository series;
     private final ExperimentReports reports;
     private final ExperimentManager manager;
+    private final BotAnalyticsReadRepository analytics;
     private final com.fasterxml.jackson.databind.ObjectMapper mapper;
 
     @GetMapping
@@ -45,21 +44,8 @@ public class BotAnalyticsController {
             !List.of("", "COLLECT", "EVALUATE").contains(mode))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         model.addAttribute("title", "Аналитика ботов и моделей");
-        model.addAttribute("series", jdbc.queryForList("""
-            SELECT es.id, es.status, es.mode, es.created_at, es.generator_version, es.policy_version,
-                   es.model_version, (es.config_json::jsonb->>'target')::int AS target,
-                   count(r.id) AS started,
-                   count(r.id) FILTER (WHERE r.status='COMPLETED') AS completed,
-                   count(r.id) FILTER (WHERE r.status='INCOMPLETE') AS incomplete,
-                   count(r.id) FILTER (WHERE r.status='ERROR') AS errors,
-                   coalesce(sum(r.cycles) FILTER (WHERE r.status='COMPLETED'),0) AS cycles
-             FROM experiment_series es LEFT JOIN experiment_run r ON r.series_id=es.id
-             WHERE (?='' OR es.status=?) AND (?='' OR es.mode=?)
-             GROUP BY es.id ORDER BY es.id DESC LIMIT 50 OFFSET ?
-             """, status, status, mode, mode, page * 50));
-        long count = jdbc.queryForObject("""
-            SELECT count(*) FROM experiment_series WHERE (?='' OR status=?) AND (?='' OR mode=?)
-            """, Long.class, status, status, mode, mode);
+        model.addAttribute("series", analytics.series(status, mode, page * 50));
+        long count = analytics.seriesCount(status, mode);
         model.addAttribute("statusFilter", status);
         model.addAttribute("modeFilter", mode);
         model.addAttribute("page", page);
@@ -82,31 +68,11 @@ public class BotAnalyticsController {
         model.addAttribute("coverage", reports.report(id));
         // Срез по рынку и политике вычисляется по завершённым играм; нулевые/неполные
         // попытки остаются в счётчиках статусов, но не превращаются в финансовые итоги.
-        model.addAttribute("marketPolicies", jdbc.queryForList("""
-            SELECT r.market, m.selected_strategy AS policy, count(*) AS players,
-                   count(DISTINCT r.id) AS games,
-                   percentile_disc(0.5) WITHIN GROUP (ORDER BY gr.result) AS median_result,
-                   count(*) FILTER (WHERE gr.result>0) AS positive
-            FROM experiment_run r JOIN manufacturer m ON m.game_id=r.game_id
-            JOIN game_result gr ON gr.manufacturer_id=m.id
-            WHERE r.series_id=? AND r.status='COMPLETED'
-            GROUP BY r.market, m.selected_strategy ORDER BY r.market, m.selected_strategy
-            """, id));
-        model.addAttribute("training", hasTrainingReports() ? jdbc.queryForList("""
-            SELECT training_run_id::text AS id, status, created_at, report->>'champion' AS champion
-            FROM training_run_report WHERE report->'series_ids' @> jsonb_build_array(cast(? AS text))
-            ORDER BY created_at DESC LIMIT 30
-            """, id.toString()) : List.of());
-        model.addAttribute("games", jdbc.queryForList("""
-            SELECT id, number, seed::text AS seed, status, market, bots, horizon, completed_days,
-                   cycles, attempts, stock_skips, credit_skips, model_decisions, model_fallbacks, best_result
-            FROM experiment_run WHERE series_id=? AND (?='' OR status=?) AND (?='' OR market=?)
-            ORDER BY number LIMIT 50 OFFSET ?
-            """, id, status, status, market, market, page * 50));
+        model.addAttribute("marketPolicies", analytics.marketPolicies(id));
+        model.addAttribute("training", hasTrainingReports() ? analytics.trainingReports(id) : List.of());
+        model.addAttribute("games", analytics.runs(id, status, market, page * 50));
         model.addAttribute("page", page);
-        long count = jdbc.queryForObject("""
-            SELECT count(*) FROM experiment_run WHERE series_id=? AND (?='' OR status=?) AND (?='' OR market=?)
-            """, Long.class, id, status, status, market, market);
+        long count = analytics.runCount(id, status, market);
         model.addAttribute("count", count);
         model.addAttribute("statusFilter", status);
         model.addAttribute("marketFilter", market);
@@ -158,19 +124,7 @@ public class BotAnalyticsController {
         model.addAttribute("botSelectionUrl", UriComponentsBuilder.fromPath("/admin/bot-analytics/runs/{id}")
             .queryParam("from", from).queryParam("page", page).queryParam("status", status)
             .queryParam("market", market).buildAndExpand(id).encode().toUriString());
-        var players = jdbc.queryForList("""
-            SELECT m.id, a.full_name AS name, m.selected_strategy AS policy, m.investment_credit_amount,
-                   m.production_capacity_per_day, m.current_product_count, m.balance,
-                   gr.result AS result_after_debt,
-                   (SELECT count(*) FROM production_parameters p WHERE p.manufacturer_id=m.id) AS cycles,
-                   (SELECT coalesce(sum(s.products_sold),0) FROM statistics_info s WHERE s.manufacturer_id=m.id) AS sold,
-                   (SELECT coalesce(sum(s.products_produced),0) FROM statistics_info s WHERE s.manufacturer_id=m.id) AS produced,
-                   (SELECT count(*) FROM bot_decision_log d WHERE d.manufacturer_id=m.id AND d.outcome='ACCEPTED') AS accepted,
-                   (SELECT count(*) FROM bot_decision_log d WHERE d.manufacturer_id=m.id AND d.outcome='STOCK_SKIP') AS stock_skips,
-                   (SELECT count(*) FROM bot_decision_log d WHERE d.manufacturer_id=m.id AND d.outcome='CREDIT_SKIP') AS credit_skips
-            FROM manufacturer m JOIN account a ON a.id=m.account_id
-            LEFT JOIN game_result gr ON gr.manufacturer_id=m.id WHERE m.game_id=? ORDER BY m.id
-            """, game);
+        var players = analytics.players(game);
         if (bot == null && !players.isEmpty()) bot = ((Number) players.get(0).get("id")).longValue();
         if (bot != null) {
             Long selectedBot = bot;
@@ -182,69 +136,24 @@ public class BotAnalyticsController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         model.addAttribute("title", "Игра #" + run.getNumber());
         model.addAttribute("run", run);
-        model.addAttribute("game", jdbc.queryForMap("SELECT * FROM game WHERE id=?", game));
+        model.addAttribute("game", analytics.game(game));
         model.addAttribute("players", players);
         model.addAttribute("seriesMode", run.getSeries().getMode());
         model.addAttribute("bot", bot);
         model.addAttribute("compareBot", compareBot);
-        model.addAttribute("compareDays", compareBot == null ? List.of() : jdbc.queryForList("""
-            SELECT trade_date, products_sold FROM statistics_info
-            WHERE manufacturer_id=? ORDER BY trade_date, id
-            """, compareBot));
+        model.addAttribute("compareDays", compareBot == null ? List.of() : analytics.salesDays(compareBot));
         if (bot != null) {
-            model.addAttribute("days", jdbc.queryForList("""
-                SELECT trade_date, products_produced, products_sold, products_in_stock, price,
-                       balance, paid_taxes_amount, repaid_investment_credit_amount, repaid_business_credit_amount,
-                       current_investment_credit_debt_amount, current_business_credit_debt_amount
-                FROM statistics_info WHERE manufacturer_id=? ORDER BY trade_date, id
-                """, bot));
+            model.addAttribute("days", analytics.days(bot));
             // Продажи цикла — сумма за наблюдаемые дни (start_date, start_date+duration].
             // Если дней меньше duration, метка неполная: не выдавать её за прибыль цикла.
-            model.addAttribute("cycles", jdbc.queryForList("""
-                SELECT start_date, time_to_market, product_count, production_capacity_per_day,
-                       price, cost_price, assortment, quality_index, business_credit_amount,
-                       (SELECT count(DISTINCT s.trade_date) FROM statistics_info s WHERE s.manufacturer_id=p.manufacturer_id
-                        AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market) AS observed_days,
-                       (SELECT coalesce(sum(s.products_sold),0) FROM statistics_info s WHERE s.manufacturer_id=p.manufacturer_id
-                        AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market) AS observed_sold,
-                       (SELECT coalesce(sum(s.products_produced),0) FROM statistics_info s WHERE s.manufacturer_id=p.manufacturer_id
-                        AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market) AS observed_produced,
-                       (SELECT coalesce(sum(s.products_sold*s.price),0) FROM statistics_info s WHERE s.manufacturer_id=p.manufacturer_id
-                        AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market) AS observed_revenue,
-                       (SELECT coalesce(sum(coalesce(s.paid_taxes_amount,0)+coalesce(s.repaid_investment_credit_amount,0)+
-                            coalesce(s.repaid_business_credit_amount,0)),0) FROM statistics_info s
-                        WHERE s.manufacturer_id=p.manufacturer_id AND s.trade_date>p.start_date
-                          AND s.trade_date<=p.start_date+p.time_to_market) AS observed_payments,
-                       (SELECT s.products_in_stock FROM statistics_info s WHERE s.manufacturer_id=p.manufacturer_id
-                        AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market
-                        ORDER BY s.trade_date DESC,s.id DESC LIMIT 1) AS ending_stock,
-                       (SELECT s.balance FROM statistics_info s WHERE s.manufacturer_id=p.manufacturer_id
-                        AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market
-                        ORDER BY s.trade_date DESC,s.id DESC LIMIT 1) -
-                       (SELECT s.balance FROM statistics_info s WHERE s.manufacturer_id=p.manufacturer_id
-                        AND s.trade_date<=p.start_date ORDER BY s.trade_date DESC,s.id DESC LIMIT 1) AS balance_change
-                FROM production_parameters p WHERE manufacturer_id=? ORDER BY start_date, id
-                """, bot));
-            model.addAttribute("ads", jdbc.queryForList("SELECT start_date,end_date,intensity_index,cost FROM advertisement WHERE manufacturer_id=? ORDER BY start_date", bot));
-            model.addAttribute("investmentPayments", jdbc.queryForList("""
-                SELECT date, principal_payment, interest_amount, next_date
-                FROM investment_credit_payment WHERE manufacturer_id=? ORDER BY date,id
-                """, bot));
-            model.addAttribute("businessPayments", jdbc.queryForList("""
-                SELECT b.date, b.amount, b.next_date, b.next_amount, p.start_date AS cycle_day
-                FROM business_credit_payment b JOIN production_parameters p ON p.id=b.production_parameters_id
-                WHERE p.manufacturer_id=? ORDER BY b.date,b.id
-                """, bot));
-            model.addAttribute("taxes", jdbc.queryForList("SELECT date, amount FROM sales_tax_payment WHERE manufacturer_id=? ORDER BY date,id", bot));
-            model.addAttribute("trades", jdbc.queryForList("""
-                SELECT trade_date, product_number, price, quality_index, is_worn_out
-                FROM trading_session_results WHERE manufacturer_id=? ORDER BY trade_date,id LIMIT 1000
-                """, bot));
-            var decisions = jdbc.queryForList("""
-                SELECT decision_day, policy, model_version, outcome, used_model, fallback, fallback_reason,
-                        recommendation_source, snapshot_json, proposed_action_json, candidates_json
-                FROM bot_decision_log WHERE run_id=? AND manufacturer_id=? ORDER BY decision_day,id
-                """, id, bot);
+            model.addAttribute("cycles", analytics.cycles(bot).stream()
+                .map(BotAnalyticsReadRepository.CycleRow::templateModel).toList());
+            model.addAttribute("ads", analytics.advertisements(bot));
+            model.addAttribute("investmentPayments", analytics.investmentPayments(bot));
+            model.addAttribute("businessPayments", analytics.businessPayments(bot));
+            model.addAttribute("taxes", analytics.taxes(bot));
+            model.addAttribute("trades", analytics.trades(bot));
+            var decisions = analytics.decisions(id, bot);
             // Вверху хронологии показываем смысл плана; исходный JSON остаётся в деталях.
             for (var decision : decisions) {
                 try {
@@ -260,19 +169,7 @@ public class BotAnalyticsController {
                 }
             }
             model.addAttribute("decisions", decisions);
-            model.addAttribute("episodes", jdbc.queryForList("""
-                SELECT decision_day, cycle_days, snapshot_json, action_json,
-                        (SELECT count(DISTINCT s.trade_date) FROM statistics_info s
-                         WHERE s.manufacturer_id=e.manufacturer_id AND s.trade_date>e.decision_day
-                           AND s.trade_date<=e.decision_day+e.cycle_days) AS observed_days,
-                        (SELECT count(s.id)-count(DISTINCT s.trade_date) FROM statistics_info s
-                         WHERE s.manufacturer_id=e.manufacturer_id AND s.trade_date>e.decision_day
-                           AND s.trade_date<=e.decision_day+e.cycle_days) AS duplicate_days,
-                       (SELECT sum(s.products_sold) FROM statistics_info s
-                        WHERE s.manufacturer_id=e.manufacturer_id AND s.trade_date>e.decision_day
-                          AND s.trade_date<=e.decision_day+e.cycle_days) AS sold
-                FROM strategy_training_episode e WHERE manufacturer_id=? ORDER BY decision_day,id
-                """, bot));
+            model.addAttribute("episodes", analytics.episodes(bot));
         }
         return "bot_analytics_run";
     }
@@ -285,15 +182,12 @@ public class BotAnalyticsController {
         model.addAttribute("group", group);
         model.addAttribute("report", reports.report(id));
         model.addAttribute("trainingId", hasTrainingReports() && group.getModelVersion() != null ?
-            jdbc.queryForList("""
-                SELECT training_run_id::text AS id FROM training_run_report
-                WHERE report->>'version'=? AND status='trained' ORDER BY created_at LIMIT 1
-                """, group.getModelVersion()) : List.of());
+            analytics.trainingModel(group.getModelVersion()) : List.of());
         return "bot_analytics_evaluation";
     }
 
     private boolean hasTrainingReports() {
-        return jdbc.queryForObject("SELECT to_regclass('public.training_run_report')::text", String.class) != null;
+        return analytics.hasTrainingReports();
     }
 
     private static boolean marketAllowed(String name) {

@@ -3,10 +3,10 @@ package ru.itis.diploma.experiment.bot;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.itis.diploma.game.dto.StrategySnapshot;
 import ru.itis.diploma.game.model.Manufacturer;
+import ru.itis.diploma.game.repository.CycleObservationRepository;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -27,7 +27,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class BotDecisions {
     private final BotPolicies policies;
-    private final JdbcTemplate jdbc;
+    private final CycleObservationRepository cycleObservations;
     private final ObjectMapper mapper;
 
     public BotPolicies.Decision decide(long worldSeed, String policyVersion, String modelVersion,
@@ -60,23 +60,15 @@ public class BotDecisions {
 
     /** Только прошлые полные циклы данного предприятия: дни сделки считаются от старта+1. */
     private List<ObservedCycle> observedCycles(Long manufacturerId, int day) {
-        return jdbc.query("""
-            SELECT p.start_date, p.time_to_market, p.product_count, p.price, p.quality_index, p.assortment,
-                   coalesce((SELECT a.intensity_index FROM advertisement a WHERE a.manufacturer_id=p.manufacturer_id
-                       AND a.start_date=p.start_date+1 ORDER BY a.id DESC LIMIT 1),0) AS ads,
-                   coalesce((SELECT a.end_date-a.start_date+1 FROM advertisement a WHERE a.manufacturer_id=p.manufacturer_id
-                       AND a.start_date=p.start_date+1 ORDER BY a.id DESC LIMIT 1),0) AS ad_days,
-                   coalesce(sum(s.products_sold),0) AS sold,
-                   coalesce(sum(s.products_sold * p.price),0) AS revenue
-            FROM production_parameters p LEFT JOIN statistics_info s ON s.manufacturer_id=p.manufacturer_id
-                 AND s.trade_date>p.start_date AND s.trade_date<=p.start_date+p.time_to_market
-            WHERE p.manufacturer_id=? AND p.start_date+p.time_to_market<=?
-            GROUP BY p.id HAVING count(DISTINCT s.trade_date)=p.time_to_market
-            ORDER BY p.start_date
-            """, (rs, row) -> new ObservedCycle(rs.getInt("start_date"), rs.getInt("time_to_market"),
-                rs.getInt("product_count"), rs.getBigDecimal("price"), rs.getBigDecimal("quality_index"),
-                rs.getInt("assortment"), rs.getInt("ads"), rs.getInt("ad_days"), rs.getInt("sold"),
-                rs.getBigDecimal("revenue")), manufacturerId, day);
+        return cycleObservations
+            .findByManufacturerIdAndCompleteIsTrueAndEndDateLessThanEqualOrderByStartDateAsc(manufacturerId, day)
+            .stream().map(cycle -> {
+                var production = cycle.getProductionParameters();
+                return new ObservedCycle(cycle.getStartDate(), cycle.getExpectedDays(), production.getProductCount(),
+                    production.getPrice(), production.getQualityIndex(), production.getAssortment(),
+                    cycle.getAdvertisingIntensity(), cycle.getAdvertisingDays(), cycle.getProductsSold(),
+                    cycle.getRevenue());
+            }).toList();
     }
 
     /**

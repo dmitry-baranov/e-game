@@ -17,6 +17,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@jakarta.persistence.Table(uniqueConstraints =
+    @jakarta.persistence.UniqueConstraint(columnNames = {"game_id", "account_id"}))
 public class Manufacturer {
 
     @Id

@@ -29,6 +29,7 @@ public class StrategySnapshotService {
     private final InvestmentCreditPaymentRepository investments;
     private final BusinessCreditPaymentRepository business;
     private final ManufacturerService manufacturerService;
+    private final GameDayReadModel gameDayReadModel;
 
     @Transactional(readOnly = true)
     public Manufacturer owner(Long gameId, Long accountId) {
@@ -45,6 +46,7 @@ public class StrategySnapshotService {
     /** Public competitor attributes are shared across a game's pre-decision snapshots. */
     @Transactional(readOnly = true)
     public Map<Long, StrategySnapshot.Competitor> visibleCompetitors(List<Manufacturer> players) {
+        if (!players.isEmpty()) return gameDayReadModel.visibleCompetitors(players.getFirst().getGame().getId());
         Map<Long, StrategySnapshot.Competitor> visible = new LinkedHashMap<>();
         for (Manufacturer player : players) {
             if (!player.isEnteredInitialProductionParameters()) continue;
@@ -60,6 +62,11 @@ public class StrategySnapshotService {
     @Transactional(readOnly = true)
     public StrategySnapshot snapshot(Long gameId, Long accountId,
                                      Map<Long, StrategySnapshot.Competitor> visibleCompetitors) {
+        if (visibleCompetitors == null) {
+            StrategySnapshot snapshot = gameDayReadModel.snapshotsBeforeDecisions(gameId).get(accountId);
+            if (snapshot == null) throw new AccessDeniedException("Вы не участвуете в этой игре");
+            return snapshot;
+        }
         Manufacturer own = owner(gameId, accountId);
         var game = own.getGame();
         var last = productions.findFirstByManufacturerIdOrderByStartDateDescIdDesc(own.getId()).orElse(null);

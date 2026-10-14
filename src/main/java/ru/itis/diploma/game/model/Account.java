@@ -38,8 +38,17 @@ public class Account implements Serializable {
     @Enumerated(value = EnumType.STRING)
     private Role role;
 
+    private boolean serviceAccount;
+
+    @Enumerated(value = EnumType.STRING)
+    private ServiceAccountType serviceAccountType;
+
     public enum Role {
         USER, ADMIN
+    }
+
+    public enum ServiceAccountType {
+        EXPERIMENT_BOT
     }
 
 }

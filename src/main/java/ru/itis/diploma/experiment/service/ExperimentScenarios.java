@@ -17,7 +17,7 @@ import java.util.SplittableRandom;
  */
 @Component
 public class ExperimentScenarios {
-    public static final String VERSION = "market-v4";
+    public static final String VERSION = "market-v5";
     public static final List<String> MARKETS = List.of("BUDGET", "COMPETITIVE", "ADVERTISING",
         "QUALITY_FOCUS", "LOYALTY", "CREDIT_CRUNCH", "PERISHABLE", "OVERSUPPLY");
     private static final String[] NAMES = {"Бюджетный", "Конкурентный", "Дорогая реклама",
@@ -43,22 +43,25 @@ public class ExperimentScenarios {
         String[] types = c.markets();
         String picked = types[rng.nextInt(types.length)];
         int type = MARKETS.indexOf(picked);
-        if (type < 0 || (type >= 3 && !VERSION.equals(version)))
+        boolean modernMarkets = "market-v4".equals(version) || VERSION.equals(version);
+        if (type < 0 || (type >= 3 && !modernMarkets))
             throw new IllegalArgumentException("Рынок не поддерживается генератором " + version + ": " + picked);
         // Новые типы наследуют параметры конкурентного сценария. Для v1–v3 нельзя
         // менять ни формулы, ни порядок вызовов rng: это нарушит воспроизводимость.
         int baseType = type < 3 ? type : 1;
-        boolean improved = "market-v2".equals(version) || "market-v3".equals(version) || VERSION.equals(version);
-        int lifetime = VERSION.equals(version) && type == 6 ? rng.nextInt(4, 8) :
+        boolean improved = "market-v2".equals(version) || "market-v3".equals(version) || modernMarkets;
+        int lifetime = modernMarkets && type == 6 ? rng.nextInt(4, 8) :
             improved ? rng.nextInt(8, 17) : rng.nextInt(12, 25);
-        int targetDays = VERSION.equals(version) && type == 6 ? lifetime * 7 + 10 :
-            ("market-v3".equals(version) || VERSION.equals(version)) ? lifetime * 3 + 10 + baseType * 5 :
+        int targetDays = modernMarkets && type == 6 ? lifetime * 7 + 10 :
+            ("market-v3".equals(version) || modernMarkets) ? lifetime * 3 + 10 + baseType * 5 :
                 lifetime * 2 + 15;
-        int horizon = Math.min(c.getMaxDays(), Math.max(c.getMinDays(), Math.max(45, targetDays)));
+        int horizon = VERSION.equals(version)
+            ? new SplittableRandom(seed ^ 0x6a09e667f3bcc909L).nextInt(c.getMinDays(), c.getMaxDays() + 1)
+            : Math.min(c.getMaxDays(), Math.max(c.getMinDays(), Math.max(45, targetDays)));
         int cost = rng.nextInt(7, 14) + baseType * 2;
         int price = type == 2 ? 4 : 2;
         int capacity = bots * (improved ? rng.nextInt(18, 28) : rng.nextInt(7, 13));
-        int purchaseLimit = VERSION.equals(version) && type == 7 ? Math.max(1, capacity / 3) : capacity;
+        int purchaseLimit = modernMarkets && type == 7 ? Math.max(1, capacity / 3) : capacity;
         var g = CreateGameDto.builder().name("Эксперимент #" + number + " — " + NAMES[type])
             .timeUnit(1).interestRateInvestmentCredit(bd(type == 5 ? 18 : 5 + baseType * 2))
             .interestRateBusinessCredit(bd(type == 5 ? 24 : 6 + baseType * 2)).investmentCreditTermMonths(bd(12))

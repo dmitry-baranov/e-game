@@ -9,8 +9,11 @@ import ru.itis.diploma.game.dto.*;
 import ru.itis.diploma.experiment.bot.BotDecisions;
 import ru.itis.diploma.experiment.bot.BotParticipants;
 import ru.itis.diploma.experiment.bot.BotPolicies;
+import ru.itis.diploma.experiment.bot.policy.CreditGuard;
 import ru.itis.diploma.experiment.model.ExperimentRun;
 import ru.itis.diploma.experiment.model.ExperimentSeries;
+import ru.itis.diploma.experiment.model.ExperimentPair;
+import ru.itis.diploma.experiment.repository.ExperimentPairRepository;
 import ru.itis.diploma.experiment.repository.ExperimentRunRepository;
 import ru.itis.diploma.experiment.repository.ExperimentSeriesRepository;
 import ru.itis.diploma.game.GameSimulation;
@@ -22,7 +25,6 @@ import ru.itis.diploma.game.service.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +39,7 @@ public class ExperimentEngine {
     private final TransactionTemplate transactions;
     private final ExperimentRunRepository runs;
     private final ExperimentSeriesRepository series;
+    private final ExperimentPairRepository pairs;
     private final ExperimentScenarios scenarios;
     private final BotParticipants botParticipants;
     private final ManufacturerRepository manufacturers;
@@ -44,7 +47,8 @@ public class ExperimentEngine {
     private final GameResultRepository results;
     private final GameSimulation gameSimulation;
     private final ManufacturerService manufacturerService;
-    private final StrategySnapshotService snapshots;
+    private final GameDayReadModel gameDayReadModel;
+    private final CreditGuard creditGuard;
     private final StrategyTrainingCapture trainingCapture;
     private final BotDecisions botDecisions;
     private final ExperimentDecisionJournal journal;
@@ -60,11 +64,11 @@ public class ExperimentEngine {
         return transactions.execute(tx -> {
             var group = series.lockById(seriesId).orElseThrow();
             if (!"RUNNING".equals(group.getStatus())) return null;
-            if ("EVALUATE".equals(group.getMode())) reconcileWaitingPairs(seriesId);
+            int target = group.getTarget();
             long done = runs.countBySeriesIdAndStatus(seriesId, "COMPLETED");
             long active = runs.countBySeriesIdAndStatus(seriesId, "RUNNING");
             long waiting = runs.countBySeriesIdAndStatus(seriesId, "WAITING_PAIR");
-            if (done >= config.getTarget()) {
+            if (done >= target) {
                 if (active == 0) group.setStatus("DONE");
                 return null;
             }
@@ -74,30 +78,13 @@ public class ExperimentEngine {
                 queued.get().setStatus("RUNNING");
                 return queued.get().getId();
             }
-            if (done + active + waiting >= config.getTarget()) return null;
+            if (done + active + waiting >= target) return null;
             if (group.getNextNumber() > config.getMaxAttempts()) {
                 if (active == 0) group.setStatus("EXHAUSTED");
                 return null;
             }
             return createRun(group, config).getId();
         });
-    }
-
-    private void reconcileWaitingPairs(Long seriesId) {
-        for (var waiting : runs.findBySeriesIdOrderByNumberDesc(seriesId)) {
-            if (!"WAITING_PAIR".equals(waiting.getStatus())) continue;
-            int partnerNumber = waiting.getNumber() % 2 == 0 ? waiting.getNumber() - 1 : waiting.getNumber() + 1;
-            runs.findBySeriesIdAndNumber(seriesId, partnerNumber).ifPresent(partner -> {
-                if ("WAITING_PAIR".equals(partner.getStatus())) {
-                    waiting.setStatus("COMPLETED");
-                    partner.setStatus("COMPLETED");
-                } else if ("INCOMPLETE".equals(partner.getStatus()) ||
-                    "ERROR".equals(partner.getStatus()) || "CANCELLED".equals(partner.getStatus())) {
-                    waiting.setStatus("INCOMPLETE");
-                }
-            });
-        }
-        runs.flush();
     }
 
     private ExperimentRun createRun(ExperimentSeries group, ExperimentConfig config) {
@@ -107,8 +94,25 @@ public class ExperimentEngine {
         var run = new ExperimentRun();
         run.setSeries(group);
         run.setNumber(number);
-        run.setSeed(scenario.seed());
-        run.setMarket(scenario.market());
+        if ("EVALUATE".equals(group.getMode())) {
+            int pairNumber = (number + 1) / 2;
+            var pair = pairs.findBySeriesIdAndPairNumber(group.getId(), pairNumber).orElseGet(() -> {
+                var created = new ExperimentPair();
+                created.setSeries(group);
+                created.setPairNumber(pairNumber);
+                created.setSeed(scenario.seed());
+                created.setMarket(scenario.market());
+                return pairs.save(created);
+            });
+            if (pair.getSeed() != scenario.seed() || !pair.getMarket().equals(scenario.market()))
+                throw new IllegalStateException("Условия EVALUATE-пары изменились");
+            run.setPair(pair);
+            run.setSeed(pair.getSeed());
+            run.setMarket(pair.getMarket());
+        } else {
+            run.setSeed(scenario.seed());
+            run.setMarket(scenario.market());
+        }
         run.setBots(scenario.bots());
         run.setHorizon(scenario.horizon());
         runs.save(run);
@@ -156,6 +160,7 @@ public class ExperimentEngine {
             return;
         }
         run.setStatus("CANCELLED");
+        invalidatePair(run);
         if (run.getGame().getStatus() != GameStatus.FINISHED) gameSimulation.finish(run.getGame());
     }
 
@@ -170,23 +175,24 @@ public class ExperimentEngine {
 
     private void startGame(ExperimentRun run, ExperimentSeries group, Game game) {
         var players = ordered(game.getId());
-        var competitors = snapshots.visibleCompetitors(players);
+        var views = gameDayReadModel.snapshotsBeforeDecisions(game.getId());
         var proposed = new ArrayList<ProposedDecision>();
-        Map<Long, StrategySnapshot> views = new HashMap<>();
         // Решения всех ботов вычисляются до применения первого производства.
         for (int i = 0; i < players.size(); i++) {
             var player = players.get(i);
-            var view = snapshots.snapshot(game.getId(), player.getAccount().getId(), competitors);
-            views.put(player.getAccount().getId(), view);
+            var view = views.get(player.getAccount().getId());
             proposed.add(propose(run, group, player, view, i));
         }
-        trainingCapture.withPreDecisionSnapshots(views, () -> {
+        trainingCapture.withPreDecisionSnapshots(run.getId(), views, () -> {
             for (var choice : proposed) {
-                journal.logDecision(run, choice.player(), choice.view(), choice.decision(), "ACCEPTED", group.getModelVersion());
+                var decisionLog = journal.logDecision(run, choice.player(), choice.view(), choice.decision(),
+                    "ACCEPTED", group.getModelVersion());
                 var initial = new InitialProductionParameters();
                 copy(choice.decision().action(), initial);
                 initial.setProductionCapacityPerDay(10 + choice.index() % 5);
-                manufacturerService.defineInitialProductionParameters(initial, choice.player().getAccount().getId(), game);
+                var cycle = manufacturerService.defineInitialProductionParameters(
+                    initial, choice.player().getAccount().getId(), game);
+                journal.acceptCycle(decisionLog, cycle);
                 journal.recordDecision(run, choice.decision());
             }
         });
@@ -204,27 +210,29 @@ public class ExperimentEngine {
         // COMPLETED требует двух производств у каждого и применения модели в модельной паре.
         boolean enough = java.util.Arrays.stream(counts).allMatch(count -> count >= 2);
         boolean valid = enough && (!"MODEL".equals(players.get(0).getSelectedStrategy()) || run.getModelDecisions() > 0);
-        completePair(run, series.lockById(group.getId()).orElseThrow(), valid);
+        completePair(run, group, valid);
     }
 
     private void decideAndApplyProduction(ExperimentRun run, ExperimentSeries group, Game game) {
         var players = ordered(game.getId());
+        var views = gameDayReadModel.snapshotsBeforeDecisions(game.getId());
+        var latest = productions.findByManufacturer_Game_IdOrderByStartDateAscIdAsc(game.getId()).stream()
+            .collect(java.util.stream.Collectors.toMap(p -> p.getManufacturer().getId(), p -> p, (first, second) -> second));
         var proposed = new ArrayList<ProposedDecision>();
-        Map<Long, StrategySnapshot> views = new HashMap<>();
-        Map<Long, StrategySnapshot.Competitor> competitors = null;
         // Сначала собираем все снимки и решения; до этого момента никто не делает ход.
         for (int i = 0; i < players.size(); i++) {
             var player = players.get(i);
-            var last = manufacturerService.getLastProductionParameters(player.getId()).orElseThrow();
+            var last = latest.get(player.getId());
+            if (last == null) continue;
             if (game.getCurrentDay() < last.getStartDate() + last.getTimeToMarket() + 1 ||
                 game.getCurrentDay() >= run.getHorizon() - 5) continue;
-            if (competitors == null) competitors = snapshots.visibleCompetitors(players);
-            var view = snapshots.snapshot(game.getId(), player.getAccount().getId(), competitors);
+            var view = views.get(player.getAccount().getId());
             if ("bots-v6".equals(group.getPolicyVersion()) && journal.unchangedAfterSkip(run, player, view)) continue;
-            views.put(player.getAccount().getId(), view);
             proposed.add(propose(run, group, player, view, i));
         }
-        trainingCapture.withPreDecisionSnapshots(views, () -> {
+        Map<Long, StrategySnapshot> candidateViews = proposed.stream().collect(java.util.stream.Collectors.toMap(
+            choice -> choice.player().getAccount().getId(), ProposedDecision::view));
+        trainingCapture.withPreDecisionSnapshots(run.getId(), candidateViews, () -> {
             for (var choice : proposed) applyProduction(run, group, game, choice);
         });
     }
@@ -243,7 +251,7 @@ public class ExperimentEngine {
             .add(game.getBaseAdvertisementPrice().multiply(BigDecimal.valueOf(
                 plan.getAdvertisingIntensityIndex() * plan.getAdvertisingDays())));
         BigDecimal shortfall = cost.subtract(player.getBalance()).max(BigDecimal.ZERO);
-        if (rejectForCredit(group, game, choice, cost, shortfall)) {
+        if (creditGuard.reject(group.getPolicyVersion(), player, game, plan, choice.view(), cost, shortfall)) {
             journal.logDecision(run, player, choice.view(), choice.decision(), "CREDIT_SKIP", group.getModelVersion());
             run.setCreditSkips(run.getCreditSkips() + 1);
             return;
@@ -251,39 +259,15 @@ public class ExperimentEngine {
         var next = new NewProductionParameters();
         copy(plan, next);
         next.setBusinessCreditAmount(shortfall);
-        journal.logDecision(run, player, choice.view(), choice.decision(), "ACCEPTED", group.getModelVersion());
-        manufacturerService.defineNewProductionParameters(next, player.getAccount().getId(), game);
+        var decisionLog = journal.logDecision(run, player, choice.view(), choice.decision(),
+            "ACCEPTED", group.getModelVersion());
+        var cycle = manufacturerService.defineNewProductionParameters(next, player.getAccount().getId(), game);
+        journal.acceptCycle(decisionLog, cycle);
         journal.recordDecision(run, choice.decision());
-    }
-
-    private boolean rejectForCredit(ExperimentSeries group, Game game, ProposedDecision choice,
-                                    BigDecimal cost, BigDecimal shortfall) {
-        var player = choice.player();
-        var balance = player.getBalance();
-        if (shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(80))) > 0) return true;
-        if (!"bots-v6".equals(group.getPolicyVersion())) return false;
-        if (player.getSelectedStrategy() == null) return false;
-        return switch (player.getSelectedStrategy()) {
-            case "DEBT_AVOID" -> shortfall.signum() > 0;
-            case "CASH_RESERVE" -> balance.subtract(cost)
-                .compareTo(balance.max(BigDecimal.ZERO).multiply(new BigDecimal("0.25"))) < 0;
-            case "PAYMENT_AWARE" -> {
-                int days = (choice.decision().action().getProductCount() + player.getProductionCapacityPerDay() - 1)
-                    / player.getProductionCapacityPerDay();
-                yield balance.subtract(cost).compareTo(viewPaymentReserve(choice.view(), game.getCurrentDay() + days)) < 0;
-            }
-            case "LIMITED_CREDIT_GROWTH" -> shortfall.compareTo(game.getBaseCostPrice().multiply(BigDecimal.valueOf(20))) > 0;
-            default -> false;
-        };
     }
 
     private List<Manufacturer> ordered(Long gameId) {
         return manufacturers.findByGame_Id(gameId).stream().sorted(Comparator.comparing(Manufacturer::getId)).toList();
-    }
-
-    private BigDecimal viewPaymentReserve(StrategySnapshot view, int untilDay) {
-        return view.payments().stream().filter(p -> p.day() > view.day() && p.day() <= untilDay)
-            .map(StrategySnapshot.Payment::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private static void copy(CommonProductionParameters source, CommonProductionParameters target) {
@@ -303,16 +287,13 @@ public class ExperimentEngine {
             run.setStatus(valid ? "COMPLETED" : "INCOMPLETE");
             return;
         }
-        int partnerNumber = run.getNumber() % 2 == 0 ? run.getNumber() - 1 : run.getNumber() + 1;
-        var partner = runs.findBySeriesIdAndNumber(group.getId(), partnerNumber).orElse(null);
-        if (!valid) {
-            run.setStatus("INCOMPLETE");
-            if (partner != null && "WAITING_PAIR".equals(partner.getStatus())) partner.setStatus("INCOMPLETE");
-        } else if (partner != null && "WAITING_PAIR".equals(partner.getStatus())) {
-            partner.setStatus("COMPLETED");
-            run.setStatus("COMPLETED");
-        } else if (partner != null && ("ERROR".equals(partner.getStatus()) || "INCOMPLETE".equals(partner.getStatus()))) {
-            run.setStatus("INCOMPLETE");
-        } else run.setStatus("WAITING_PAIR");
+        var pair = pairs.lockById(run.getPair().getId()).orElseThrow();
+        pair.finish(run, runs.findByPairId(pair.getId()), valid);
+    }
+
+    private void invalidatePair(ExperimentRun run) {
+        if (run.getPair() == null) return;
+        var pair = pairs.lockById(run.getPair().getId()).orElseThrow();
+        pair.invalidate(runs.findByPairId(pair.getId()));
     }
 }

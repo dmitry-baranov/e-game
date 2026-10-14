@@ -44,7 +44,8 @@ public class BotParticipants {
             int slot = slots.merge(policy, 1, Integer::sum);
             emails.add("bot-" + policy + "-" + slot + "@experiment.invalid");
         }
-        Map<String, Account> pool = accounts.findByEmailIn(emails).stream()
+        Map<String, Account> pool = accounts.findByEmailInAndServiceAccountTrueAndServiceAccountType(
+                emails, Account.ServiceAccountType.EXPERIMENT_BOT).stream()
             .collect(Collectors.toMap(Account::getEmail, Function.identity()));
         List<Long> ids = new ArrayList<>();
         for (String email : emails) {
@@ -52,7 +53,8 @@ public class BotParticipants {
             if (account == null) {
                 account = accounts.save(Account.builder().email(email)
                     .fullName("Бот " + email.substring(4, email.indexOf('@')).replace('-', ' '))
-                    .password("!disabled!").role(Account.Role.USER).build());
+                    .password("!disabled!").role(Account.Role.USER).serviceAccount(true)
+                    .serviceAccountType(Account.ServiceAccountType.EXPERIMENT_BOT).build());
             }
             ids.add(account.getId());
         }
