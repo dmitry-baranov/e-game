@@ -42,6 +42,9 @@ public class BotParticipants {
      * @param settings настройки новой игры; список аккаунтов будет заполнен методом
      * @return созданная игра с привязанными предприятиями ботов
      */
+    //прописать 3 момента в отчете
+    // Документы сначала научному руководителю потом Ильнаре
+    //1 Итеграция бота в систему  2 основные параметры бота 3 организация записи статистики как это устроенно как в каком объеме куда записывается , отчет должен составлять 7-8 старниц (можно вставлять код меньше чем на пол страницы, если больше пол страницы то в приложение)
     public Game create(String mode, String[] policies, int number,
                        int bots, CreateGameDto settings) {
         // Claims are serialized per series, but two different series can create games at once.

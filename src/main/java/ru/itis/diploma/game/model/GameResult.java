@@ -17,18 +17,23 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+/** Итог одного производителя после завершения игры, с учётом оставшихся долгов. */
 public class GameResult {
 
+    /** Идентификатор итоговой записи. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Завершённая игра. */
     @ManyToOne
     private Game game;
 
+    /** Производитель, для которого посчитан результат. */
     @ManyToOne
     private Manufacturer manufacturer;
 
+    /** Финансовый результат предприятия после учёта долгов. */
     private BigDecimal result;
 
 }

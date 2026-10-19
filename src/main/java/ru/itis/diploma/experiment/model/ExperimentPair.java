@@ -19,15 +19,21 @@ import java.util.List;
 @Setter
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"series_id", "pair_number"}))
 public class ExperimentPair {
+    /** Идентификатор пары в БД. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    /** Серия, внутри которой сравнивали правила с моделью. */
     @ManyToOne(optional = false)
     @JoinColumn(name = "series_id", nullable = false)
     private ExperimentSeries series;
+    /** Порядковый номер пары в серии. */
     private int pairNumber;
+    /** Общий seed обеих сопоставимых игр. */
     private long seed;
+    /** Общий рынок обеих игр. */
     private String market;
+    /** Состояние пары: PENDING, COMPLETED или INCOMPLETE. */
     private String status = "PENDING";
 
     /**

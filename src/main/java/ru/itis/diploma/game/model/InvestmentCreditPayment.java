@@ -17,19 +17,26 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+/** Факт платежа по инвестиционному кредиту и дата следующего платежа. */
 public class InvestmentCreditPayment {
+    /** Идентификатор платежа. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Погашенная часть основного долга. */
     private BigDecimal principalPayment;
 
+    /** Уплаченные проценты по кредиту. */
     private BigDecimal interestAmount;
 
+    /** Предприятие-заёмщик. */
     @ManyToOne
     private Manufacturer manufacturer;
 
+    /** День внесения текущего платежа. */
     private Integer date;
 
+    /** Назначенный день следующего платежа. */
     private Integer nextDate;
 }

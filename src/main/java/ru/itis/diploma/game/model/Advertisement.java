@@ -13,7 +13,7 @@ import jakarta.persistence.ManyToOne;
 import java.math.BigDecimal;
 
 /**
- * Затраты на рекламу производителей в течение игры
+ * Одна рекламная кампания предприятия и её стоимость в игре.
  */
 @Data
 @Builder
@@ -21,18 +21,24 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Entity
 public class Advertisement {
+    /** Идентификатор кампании. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Предприятие, оплатившее рекламу. */
     @ManyToOne
     private Manufacturer manufacturer;
 
+    /** Первый день показа рекламы. */
     private Integer startDate;
 
+    /** Последний день показа рекламы включительно. */
     private Integer endDate;
 
+    /** Общая стоимость кампании. */
     private BigDecimal cost;
 
-    private Integer intensityIndex; // индекс интенсивности рекламы(условно количество источников рекламы, будет вводить производитель на основе теор справки)
+    /** Выбранный индекс интенсивности/число условных рекламных каналов. */
+    private Integer intensityIndex;
 }

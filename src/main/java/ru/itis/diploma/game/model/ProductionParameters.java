@@ -18,8 +18,10 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Entity
 @jakarta.persistence.Table(indexes = @jakarta.persistence.Index(columnList = "manufacturer_id,startDate"))
+/** Фактически принятый план одного производственного цикла, а не предложение бота. */
 public class ProductionParameters {
 
+    /** Идентификатор производственного цикла. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,13 +31,14 @@ public class ProductionParameters {
      */
     private Integer startDate;
 
-    /** Last trade day belonging to this cycle (inclusive). */
+    /** Последний торговый день цикла включительно. */
     private Integer endDate;
 
-    /** Optional experiment decision id, kept scalar to preserve the game -> experiment module boundary. */
+    /** ID принятого решения экспериментального бота; у человеческой игры null. */
     @jakarta.persistence.Column(name = "decision_log_id")
     private Long decisionLogId;
 
+    /** Предприятие, запустившее этот цикл. */
     @ManyToOne
     private Manufacturer manufacturer;
 
@@ -50,7 +53,7 @@ public class ProductionParameters {
     private BigDecimal price;
 
     /**
-     * Себестоимость единицы продукции, вычисляемое
+     * Рассчитанная себестоимость единицы продукции.
      */
     private BigDecimal costPrice;
 
@@ -65,10 +68,11 @@ public class ProductionParameters {
     private BigDecimal businessCreditAmount;
 
 
-    private BigDecimal interestRateBusinessCredit; //всегда берется базовая, если не получается выполнить списание по оборотному кредиту, то на остаток повышается процент
+    /** Текущая ставка оборотного кредита этого цикла; при просрочке может расти. */
+    private BigDecimal interestRateBusinessCredit;
 
     /**
-     * Индекс качества продукции(0-1) - валидировать на 0-1
+     * Индекс качества продукции от 0 до 1.
      */
     private BigDecimal qualityIndex;
 
@@ -78,8 +82,8 @@ public class ProductionParameters {
     private Integer productionCapacityPerDay;
 
     /**
-     * Количество дней выпуска продукции текущей партии
+     * Сколько игровых дней потребуется на выпуск текущей партии.
      */
-    private Integer timeToMarket; // вычисляется по формуле
+    private Integer timeToMarket;
 
 }

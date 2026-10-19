@@ -17,15 +17,20 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+/** Факт перечисления налога с продаж конкретного предприятия. */
 public class SalesTaxPayment {
+    /** Идентификатор налогового платежа. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Уплаченная сумма налога. */
     private BigDecimal amount;
 
+    /** Предприятие, перечислившее налог. */
     @ManyToOne
     private Manufacturer manufacturer;
 
+    /** Игровой день списания налога. */
     private Integer date;
 }
