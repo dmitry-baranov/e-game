@@ -13,9 +13,13 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+/** Публичные сведения об аккаунте без пароля и служебных флагов. */
 public class AccountDto {
+    /** ID аккаунта. */
     private Long id;
+    /** Отображаемое имя пользователя. */
     private String fullName;
+    /** Адрес почты аккаунта. */
     private String email;
 
     public static AccountDto from(Account account) {

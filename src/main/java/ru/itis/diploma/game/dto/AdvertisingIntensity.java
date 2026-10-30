@@ -9,12 +9,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+/** Отображаемые параметры рекламной кампании предприятия. */
 public class AdvertisingIntensity {
 
+    /** Первый день действия рекламы. */
     private Integer startDate;
 
+    /** Последний день действия рекламы включительно. */
     private Integer endDate;
 
+    /** Индекс интенсивности рекламной кампании. */
     private Integer intensityIndex;
 
 }

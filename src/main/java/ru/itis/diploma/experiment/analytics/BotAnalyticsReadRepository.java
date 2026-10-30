@@ -15,6 +15,14 @@ import java.util.Map;
 public class BotAnalyticsReadRepository {
     private final JdbcTemplate jdbc;
 
+    /**
+     * Возвращает страницу серий экспериментов вместе со счётчиками попыток по статусам.
+     *
+     * @param status статус серии или пустая строка для выборки без фильтра
+     * @param mode режим серии или пустая строка для выборки без фильтра
+     * @param offset смещение первой строки страницы
+     * @return список строк со сведениями о сериях и агрегатами их попыток
+     */
     public List<Map<String, Object>> series(String status, String mode, int offset) {
         return jdbc.queryForList("""
             SELECT es.id, es.status, es.mode, es.created_at, es.generator_version, es.policy_version,
@@ -30,12 +38,25 @@ public class BotAnalyticsReadRepository {
             """, status, status, mode, mode, offset);
     }
 
+    /**
+     * Подсчитывает серии, удовлетворяющие заданным фильтрам.
+     *
+     * @param status статус серии или пустая строка для выборки без фильтра
+     * @param mode режим серии или пустая строка для выборки без фильтра
+     * @return количество найденных серий
+     */
     public long seriesCount(String status, String mode) {
         return jdbc.queryForObject("""
             SELECT count(*) FROM experiment_series WHERE (?='' OR status=?) AND (?='' OR mode=?)
             """, Long.class, status, status, mode, mode);
     }
 
+    /**
+     * Группирует результаты завершённых игр серии по рынку и политике бота.
+     *
+     * @param seriesId идентификатор серии
+     * @return статистика числа игроков, игр, положительных и медианных результатов
+     */
     public List<Map<String, Object>> marketPolicies(long seriesId) {
         return jdbc.queryForList("""
             SELECT r.market, m.selected_strategy AS policy, count(*) AS players,
@@ -49,6 +70,12 @@ public class BotAnalyticsReadRepository {
             """, seriesId);
     }
 
+    /**
+     * Находит отчёты запусков обучения, использовавших указанную серию.
+     *
+     * @param seriesId идентификатор серии
+     * @return не более тридцати последних отчётов обучения
+     */
     public List<Map<String, Object>> trainingReports(long seriesId) {
         return jdbc.queryForList("""
             SELECT training_run_id::text AS id, status, created_at, report->>'champion' AS champion
@@ -57,6 +84,15 @@ public class BotAnalyticsReadRepository {
             """, Long.toString(seriesId));
     }
 
+    /**
+     * Возвращает страницу попыток серии с необязательной фильтрацией.
+     *
+     * @param seriesId идентификатор серии
+     * @param status статус попытки или пустая строка для выборки без фильтра
+     * @param market рынок или пустая строка для выборки без фильтра
+     * @param offset смещение первой строки страницы
+     * @return список попыток в порядке их номера
+     */
     public List<Map<String, Object>> runs(long seriesId, String status, String market, int offset) {
         return jdbc.queryForList("""
             SELECT id, number, seed::text AS seed, status, market, bots, horizon, completed_days,
@@ -66,12 +102,26 @@ public class BotAnalyticsReadRepository {
             """, seriesId, status, status, market, market, offset);
     }
 
+    /**
+     * Подсчитывает попытки серии, соответствующие статусу и рынку.
+     *
+     * @param seriesId идентификатор серии
+     * @param status статус попытки или пустая строка для выборки без фильтра
+     * @param market рынок или пустая строка для выборки без фильтра
+     * @return количество найденных попыток
+     */
     public long runCount(long seriesId, String status, String market) {
         return jdbc.queryForObject("""
             SELECT count(*) FROM experiment_run WHERE series_id=? AND (?='' OR status=?) AND (?='' OR market=?)
             """, Long.class, seriesId, status, status, market, market);
     }
 
+    /**
+     * Загружает участников игры, их текущие показатели и доступные итоговые результаты.
+     *
+     * @param gameId идентификатор игры
+     * @return строки участников, упорядоченные по идентификатору производителя
+     */
     public List<Map<String, Object>> players(long gameId) {
         return jdbc.queryForList("""
             SELECT m.id, a.full_name AS name, m.selected_strategy AS policy, m.investment_credit_amount,
@@ -88,10 +138,22 @@ public class BotAnalyticsReadRepository {
             """, gameId);
     }
 
+    /**
+     * Загружает все сохранённые поля игры для аналитической страницы.
+     *
+     * @param gameId идентификатор игры
+     * @return строка таблицы игры в виде отображения имён столбцов в значения
+     */
     public Map<String, Object> game(long gameId) {
         return jdbc.queryForMap("SELECT * FROM game WHERE id=?", gameId);
     }
 
+    /**
+     * Возвращает дневной ряд продаж выбранного производителя.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return продажи по торговым дням в хронологическом порядке
+     */
     public List<Map<String, Object>> salesDays(long manufacturerId) {
         return jdbc.queryForList("""
             SELECT trade_date, products_sold FROM statistics_info
@@ -99,6 +161,12 @@ public class BotAnalyticsReadRepository {
             """, manufacturerId);
     }
 
+    /**
+     * Возвращает дневные производственные и финансовые показатели производителя.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return хронология статистики по дням
+     */
     public List<Map<String, Object>> days(long manufacturerId) {
         return jdbc.queryForList("""
             SELECT trade_date, products_produced, products_sold, products_in_stock, price,
@@ -108,6 +176,12 @@ public class BotAnalyticsReadRepository {
             """, manufacturerId);
     }
 
+    /**
+     * Загружает рекламные кампании производителя.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return кампании в порядке даты начала
+     */
     public List<Map<String, Object>> advertisements(long manufacturerId) {
         return jdbc.queryForList("""
             SELECT start_date,end_date,intensity_index,cost FROM advertisement
@@ -115,6 +189,12 @@ public class BotAnalyticsReadRepository {
             """, manufacturerId);
     }
 
+    /**
+     * Загружает график платежей по инвестиционному кредиту производителя.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return платежи в хронологическом порядке
+     */
     public List<Map<String, Object>> investmentPayments(long manufacturerId) {
         return jdbc.queryForList("""
             SELECT date, principal_payment, interest_amount, next_date
@@ -122,6 +202,12 @@ public class BotAnalyticsReadRepository {
             """, manufacturerId);
     }
 
+    /**
+     * Загружает платежи по бизнес-кредитам производственных циклов.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return платежи с датами соответствующих циклов
+     */
     public List<Map<String, Object>> businessPayments(long manufacturerId) {
         return jdbc.queryForList("""
             SELECT b.date, b.amount, b.next_date, b.next_amount, p.start_date AS cycle_day
@@ -130,11 +216,23 @@ public class BotAnalyticsReadRepository {
             """, manufacturerId);
     }
 
+    /**
+     * Загружает уплаченные производителем налоги с продаж.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return налоговые платежи в хронологическом порядке
+     */
     public List<Map<String, Object>> taxes(long manufacturerId) {
         return jdbc.queryForList("SELECT date, amount FROM sales_tax_payment WHERE manufacturer_id=? ORDER BY date,id",
             manufacturerId);
     }
 
+    /**
+     * Возвращает журнал торгов производителя с ограничением в тысячу строк.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return результаты торгов в хронологическом порядке
+     */
     public List<Map<String, Object>> trades(long manufacturerId) {
         return jdbc.queryForList("""
             SELECT trade_date, product_number, price, quality_index, is_worn_out
@@ -142,6 +240,13 @@ public class BotAnalyticsReadRepository {
             """, manufacturerId);
     }
 
+    /**
+     * Загружает решения конкретного бота в рамках попытки эксперимента.
+     *
+     * @param runId идентификатор попытки
+     * @param manufacturerId идентификатор производителя-бота
+     * @return журнал решений в хронологическом порядке
+     */
     public List<Map<String, Object>> decisions(long runId, long manufacturerId) {
         return jdbc.queryForList("""
             SELECT decision_day, policy, model_version, outcome, used_model, fallback, fallback_reason,
@@ -150,6 +255,12 @@ public class BotAnalyticsReadRepository {
             """, runId, manufacturerId);
     }
 
+    /**
+     * Загружает учебные эпизоды производителя и связанные наблюдения циклов.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return эпизоды с числом наблюдаемых дней и объёмом продаж
+     */
     public List<Map<String, Object>> episodes(long manufacturerId) {
         return jdbc.queryForList("""
             SELECT e.decision_day, e.cycle_days, e.snapshot_json, e.action_json,
@@ -162,6 +273,12 @@ public class BotAnalyticsReadRepository {
             """, manufacturerId);
     }
 
+    /**
+     * Находит первый успешный запуск обучения для версии модели.
+     *
+     * @param modelVersion версия модели
+     * @return список, содержащий идентификатор запуска, либо пустой список
+     */
     public List<Map<String, Object>> trainingModel(String modelVersion) {
         return jdbc.queryForList("""
             SELECT training_run_id::text AS id FROM training_run_report
@@ -169,10 +286,21 @@ public class BotAnalyticsReadRepository {
             """, modelVersion);
     }
 
+    /**
+     * Проверяет наличие таблицы отчётов обучения в текущей базе данных.
+     *
+     * @return {@code true}, если таблица отчётов существует
+     */
     public boolean hasTrainingReports() {
         return jdbc.queryForObject("SELECT to_regclass('public.training_run_report')::text", String.class) != null;
     }
 
+    /**
+     * Загружает параметры и фактические результаты производственных циклов.
+     *
+     * @param manufacturerId идентификатор производителя
+     * @return циклы производителя в хронологическом порядке
+     */
     public List<CycleRow> cycles(long manufacturerId) {
         return jdbc.query("""
             SELECT o.start_date, o.expected_days, p.product_count, p.production_capacity_per_day,
@@ -190,6 +318,12 @@ public class BotAnalyticsReadRepository {
             rs.getBigDecimal("balance_change"), rs.getBoolean("complete")), manufacturerId);
     }
 
+    /**
+     * Рассчитывает полноту учебных эпизодов завершённых игр серии.
+     *
+     * @param seriesId идентификатор серии
+     * @return счётчики полных, неполных и не давших продаж циклов
+     */
     public Coverage coverage(long seriesId) {
         return jdbc.queryForObject("""
             SELECT count(e.id) AS episodes,
@@ -209,6 +343,11 @@ public class BotAnalyticsReadRepository {
 
     public record Coverage(long episodes, long completeCycles, long incompleteCycles,
                            long duplicateDays, long zeroSalesCycles) {
+        /**
+         * Преобразует счётчики покрытия в модель с именами полей шаблона.
+         *
+         * @return неизменяемое отображение показателей покрытия
+         */
         public Map<String, Object> templateModel() {
             return Map.of("episodes", episodes, "complete_cycles", completeCycles,
                 "incomplete_cycles", incompleteCycles, "duplicate_days", duplicateDays,
@@ -222,6 +361,11 @@ public class BotAnalyticsReadRepository {
                            int observedDays, int observedSold, int observedProduced, BigDecimal observedRevenue,
                            BigDecimal observedPayments, Integer endingStock, BigDecimal balanceChange,
                            boolean complete) {
+        /**
+         * Преобразует цикл в модель строки аналитического шаблона.
+         *
+         * @return упорядоченное отображение параметров и наблюдений цикла
+         */
         public Map<String, Object> templateModel() {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("start_date", startDate); row.put("time_to_market", timeToMarket);

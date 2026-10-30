@@ -72,8 +72,7 @@ class ConcurrentExperimentsIntegrationTest {
         while (Instant.now().isBefore(deadline)) {
             var attempts = ids.stream().flatMap(id -> runs.findBySeriesIdOrderByNumberDesc(id).stream()).toList();
             overlapped |= attempts.stream().filter(r -> "RUNNING".equals(r.getStatus())).count() >= 3;
-            if (attempts.size() == 6 && attempts.stream().allMatch(r ->
-                "COMPLETED".equals(r.getStatus()) || "INCOMPLETE".equals(r.getStatus()))) {
+            if (attempts.size() == 6 && attempts.stream().allMatch(r -> "COMPLETED".equals(r.getStatus()))) {
                 assertTrue(overlapped, "Независимые серии должны выполнять игры одновременно");
                 for (Long id : ids) assertEquals(List.of(2, 1),
                     runs.findBySeriesIdOrderByNumberDesc(id).stream().map(ExperimentRun::getNumber).toList());
@@ -94,9 +93,9 @@ class ConcurrentExperimentsIntegrationTest {
     }
 
     @Test
-    void everyNewMarketRunsThroughRealTradingWithoutTechnicalErrors() throws InterruptedException {
+    void everyAvailableMarketRunsThroughRealTradingWithoutTechnicalErrors() throws InterruptedException {
         List<Long> ids = new ArrayList<>();
-        for (String market : ExperimentScenarios.MARKETS.subList(3, 8)) {
+        for (String market : ExperimentScenarios.MARKETS) {
             var config = new ExperimentConfig();
             config.setMarketMix(market);
             config.setTarget(1);
@@ -113,15 +112,14 @@ class ConcurrentExperimentsIntegrationTest {
         Instant deadline = Instant.now().plus(Duration.ofMinutes(2));
         while (Instant.now().isBefore(deadline)) {
             var attempts = ids.stream().flatMap(id -> runs.findBySeriesIdOrderByNumberDesc(id).stream()).toList();
-            if (attempts.size() == ids.size() && attempts.stream().allMatch(r ->
-                "COMPLETED".equals(r.getStatus()) || "INCOMPLETE".equals(r.getStatus()))) {
+            if (attempts.size() == ids.size() && attempts.stream().allMatch(r -> "COMPLETED".equals(r.getStatus()))) {
                 for (var attempt : attempts) {
                     var game = games.findById(attempt.getGame().getId()).orElseThrow();
                     assertEquals(GameStatus.FINISHED, game.getStatus());
                     assertEquals(30, attempt.getCompletedDays());
                     assertEquals(60, statistics.countByManufacturer_Game_Id(game.getId()));
                 }
-                assertEquals(5, attempts.stream().map(ExperimentRun::getMarket).distinct().count());
+                assertEquals(3, attempts.stream().map(ExperimentRun::getMarket).distinct().count());
                 return;
             }
             Thread.sleep(100);

@@ -14,8 +14,11 @@ import jakarta.validation.constraints.Size;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+/** Поля формы создания аккаунта с проверкой ввода. */
 public class SignUpForm {
+    /** Имя нового пользователя, показываемое в игре. */
     @Size(min = 4, max =  100)
+    /** Пароль для входа в аккаунт. */
     @NotBlank
     private String fullName;
 
@@ -23,6 +26,7 @@ public class SignUpForm {
     @ValidPassword(message = "{validation.password.error-message}")
     private String password;
 
+    /** Адрес почты, используемый как имя входа. */
     @Email
     @NotBlank
     private String email;

@@ -60,7 +60,7 @@ class BotAnalyticsNavigationIntegrationTest {
     @Test
     void filteredMarketAndBotPageReadRealFinishedGame() throws InterruptedException {
         var config = new ExperimentConfig();
-        config.setMarketMix("QUALITY_FOCUS");
+        config.setMarketMix("COMPETITIVE");
         config.setTarget(1);
         config.setMaxAttempts(1);
         config.setMinDays(30);
@@ -84,7 +84,7 @@ class BotAnalyticsNavigationIntegrationTest {
         assertEquals(java.util.Optional.of(runId), gameView.runForGame(run.getGame().getId()));
         String market = run.getMarket();
         assertNotEquals("ERROR", run.getStatus(), run.getError());
-        assertEquals("Ставка на качество", run.getMarket());
+        assertEquals("Конкурентный", run.getMarket());
         assertEquals(1, experiments.status(id).runs().size());
 
         var model = new ExtendedModelMap();
@@ -117,7 +117,7 @@ class BotAnalyticsNavigationIntegrationTest {
         assertFalse(((List<?>) compared.get("compareDays")).isEmpty());
         assertThrows(ResponseStatusException.class, () -> analytics.run(runId, firstBot, firstBot,
             "series", 0, "", market, new ExtendedModelMap()));
-        assertTrue(render("bot_analytics_series", model).contains("Ставка на качество"));
+        assertTrue(render("bot_analytics_series", model).contains("Конкурентный"));
         String html = render("bot_analytics_run", details);
         assertTrue(html.contains("Хронология решений до торговли"));
         assertTrue(html.contains("data-cycle="));

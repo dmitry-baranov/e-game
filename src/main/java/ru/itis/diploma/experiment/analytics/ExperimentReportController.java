@@ -21,6 +21,13 @@ public class ExperimentReportController {
     private final ExperimentManager manager;
     private final ExperimentReports reports;
 
+    /**
+     * Возвращает статистический отчёт существующей серии экспериментов.
+     *
+     * @param id идентификатор серии
+     * @return агрегированные показатели серии
+     * @throws java.util.NoSuchElementException если серия не существует
+     */
     @GetMapping("/{id}/report")
     public Map<String, Object> report(@PathVariable Long id) {
         manager.get(id);

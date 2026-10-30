@@ -11,26 +11,33 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+/** Общие параметры предлагаемого производства; вычисляемые поля заполняет игровой сервис. */
 public class CommonProductionParameters {
 
+    /** Размер партии в единицах товара, а не текущий остаток на складе. */
     private Integer productCount;
 
-    private BigDecimal price;//покупатель
+    /** Цена единицы товара для покупателя. */
+    private BigDecimal price;
 
+    /** Рассчитанная себестоимость единицы товара; обычно заполняется сервисом. */
     private BigDecimal costPrice;
 
-    private Integer assortment; //покупатель
+    /** Число разновидностей товара в партии. */
+    private Integer assortment;
 
-    private BigDecimal qualityIndex; //покупатель
+    /** Индекс качества товара от 0 до 1. */
+    private BigDecimal qualityIndex;
 
+    /** Сколько дней показывать рекламу этого выпуска. */
     private Integer advertisingDays;
 
-    /**
-     * Количество источников рекламы(каналы распространения рекламы - радио, тв, интернет), ограничение до 7
-     */
-    private Integer advertisingIntensityIndex; //покупатель
+    /** Индекс интенсивности рекламы (число условных каналов). */
+    private Integer advertisingIntensityIndex;
 
+    /** Рассчитанная стоимость рекламной кампании. */
     private BigDecimal advertisingCost;
 
+    /** Рассчитанное число дней до выпуска партии. */
     private Integer timeToMarket;
 }
