@@ -83,8 +83,8 @@ class BotParticipantsTest {
         var first = participants.create("COLLECT", new String[]{"CAUTIOUS"}, 1, 3, new CreateGameDto());
         var second = participants.create("COLLECT", new String[]{"CAUTIOUS"}, 2, 3, new CreateGameDto());
         assertEquals(3, byEmail.size());
-        assertEquals(List.of("bot-CAUTIOUS-1@experiment.invalid", "bot-CAUTIOUS-2@experiment.invalid",
-            "bot-CAUTIOUS-3@experiment.invalid"), byEmail.keySet().stream().sorted().toList());
+        assertEquals(List.of("bot-CAUTIOUS-1@experiment.example", "bot-CAUTIOUS-2@experiment.example",
+            "bot-CAUTIOUS-3@experiment.example"), byEmail.keySet().stream().sorted().toList());
         for (int i = 0; i < 3; i++) {
             var firstPlayer = playersByGame.get(first.getId()).get(i);
             var secondPlayer = playersByGame.get(second.getId()).get(i);

@@ -83,7 +83,7 @@ public class ExperimentController {
      */
     @GetMapping("/preview") @ResponseBody
     public List<Preview> preview(@ModelAttribute ExperimentConfig config) {
-        config.validate();
+        config.validateNewSeries();
         String[] policies = config.policies();
         List<Preview> previews = new ArrayList<>();
         int count = Math.min(5, config.getTarget());

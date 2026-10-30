@@ -93,9 +93,9 @@ class ConcurrentExperimentsIntegrationTest {
     }
 
     @Test
-    void everyNewMarketRunsThroughRealTradingWithoutTechnicalErrors() throws InterruptedException {
+    void everyAvailableMarketRunsThroughRealTradingWithoutTechnicalErrors() throws InterruptedException {
         List<Long> ids = new ArrayList<>();
-        for (String market : ExperimentScenarios.MARKETS.subList(3, 8)) {
+        for (String market : ExperimentScenarios.MARKETS) {
             var config = new ExperimentConfig();
             config.setMarketMix(market);
             config.setTarget(1);
@@ -119,7 +119,7 @@ class ConcurrentExperimentsIntegrationTest {
                     assertEquals(30, attempt.getCompletedDays());
                     assertEquals(60, statistics.countByManufacturer_Game_Id(game.getId()));
                 }
-                assertEquals(5, attempts.stream().map(ExperimentRun::getMarket).distinct().count());
+                assertEquals(3, attempts.stream().map(ExperimentRun::getMarket).distinct().count());
                 return;
             }
             Thread.sleep(100);

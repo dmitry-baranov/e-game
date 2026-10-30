@@ -114,7 +114,7 @@ public class ExperimentManager {
      */
     public ExperimentSeries create(ExperimentConfig config) {
         requireEnabled();
-        config.validate();
+        config.validateNewSeries();
         var group = new ExperimentSeries();
         group.setMode(config.getMode());
         group.setTarget(config.getTarget());

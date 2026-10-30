@@ -16,14 +16,12 @@
 <label>Seed <input name="seed" type="number" value="${config.seed?c}" required></label><p class="muted">При тех же настройках и seed сценарии воспроизводятся.</p></fieldset>
 <fieldset><legend>Режим</legend><label>Назначение серии <select name="mode"><option value="COLLECT" selected>Сбор данных</option></select></label></fieldset>
 <fieldset><legend>Рынки (можно выбрать несколько)</legend>
-<#list markets!['BUDGET','COMPETITIVE','ADVERTISING','QUALITY_FOCUS','LOYALTY','CREDIT_CRUNCH','PERISHABLE','OVERSUPPLY'] as m><label><input type="checkbox" class="market-option" value="${m?html}" <#if config.marketMix?split(',')?seq_contains(m)>checked</#if>>${(marketNames!['Бюджетный','Конкурентный','Дорогая реклама','Ставка на качество','Лояльный покупатель','Дорогие кредиты','Быстрый износ','Избыточное предложение'])[m?index]?html} <small>(${m?html})</small></label></#list>
+<#list markets!['BUDGET','COMPETITIVE','ADVERTISING'] as m><label><input type="checkbox" class="market-option" value="${m?html}" <#if config.marketMix?split(',')?seq_contains(m)>checked</#if>>${(marketNames!['Бюджетный','Конкурентный','Дорогая реклама'])[m?index]?html} <small>(${m?html})</small></label></#list>
 <input type="hidden" name="marketMix" id="marketMix" value="${config.marketMix?html}"><p class="muted">Выбор влияет на параметры игры, а не на алгоритм покупателя. <a href="#markets">Чем отличаются рынки?</a></p>
-<details id="markets"><summary>Что меняется в новых рынках</summary><ul>
-<li>QUALITY_FOCUS — больший вес качества при выборе товара;</li>
-<li>LOYALTY — сильнее учитываются прошлые покупки и длиннее история привычки;</li>
-<li>CREDIT_CRUNCH — более дорогие кредиты и создание мощности;</li>
-<li>PERISHABLE — товары изнашиваются быстрее;</li>
-<li>OVERSUPPLY — покупатель может приобрести меньше товаров при том же объёме предложения.</li>
+<details id="markets"><summary>Чем отличаются рынки</summary><ul>
+<li>Бюджетный — у покупателя меньше денег на покупки;</li>
+<li>Конкурентный — базовые условия с большим бюджетом;</li>
+<li>Дорогая реклама — рекламироваться дороже, но реклама сильнее влияет на выбор товара.</li>
 </ul></details></fieldset><fieldset><legend>Политики ботов</legend>
 <label>Политики ботов (через запятую, по умолчанию все доступные; между играми состав чередуется)<br>
 <textarea name="policyMix" rows="5" maxlength="1200" required>${config.policyMix?html}</textarea></label><br>

@@ -56,7 +56,7 @@ public class BotParticipants {
         for (int i = 0; i < bots; i++) {
             String policy = policyFor(mode, policies, number, i);
             int slot = slots.merge(policy, 1, Integer::sum);
-            String email = "bot-" + policy + "-" + slot + "@experiment.invalid";
+            String email = "bot-" + policy + "-" + slot + "@experiment.example";
             assignedPolicies.add(policy);
             emails.add(email);
         }

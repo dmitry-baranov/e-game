@@ -88,11 +88,11 @@ class ExperimentScenariosTest {
     @Test
     void newMarketsChangeOnlyTheirDeclaredConditions() {
         var c = new ExperimentConfig();
-        assertEquals(8, c.markets().length);
+        assertEquals(List.of("BUDGET", "COMPETITIVE", "ADVERTISING"), List.of(c.markets()));
         c.setMarketMix("COMPETITIVE");
         var baseline = generator.generate(c, 1);
         var standard = baseline.game();
-        for (String market : ExperimentScenarios.MARKETS.subList(3, 8)) {
+        for (String market : List.of("QUALITY_FOCUS", "LOYALTY", "CREDIT_CRUNCH", "PERISHABLE", "OVERSUPPLY")) {
             c.setMarketMix(market);
             var scenario = generator.generate(c, 1);
             var game = scenario.game();
@@ -127,6 +127,9 @@ class ExperimentScenariosTest {
         }
         c.setMarketMix("QUALITY_FOCUS,UNKNOWN");
         assertThrows(IllegalArgumentException.class, c::validate);
+        c.setMarketMix("QUALITY_FOCUS");
+        c.validate(); // сохранённая серия продолжает работать
+        assertThrows(IllegalArgumentException.class, c::validateNewSeries);
     }
 
 }

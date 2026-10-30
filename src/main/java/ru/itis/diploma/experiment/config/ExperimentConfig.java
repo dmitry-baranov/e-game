@@ -86,8 +86,18 @@ public class ExperimentConfig {
 
         Set<String> seenMarkets = new HashSet<>();
         for (String market : markets()) {
-            if (!ExperimentScenarios.MARKETS.contains(market) || !seenMarkets.add(market)) {
+            if (!ExperimentScenarios.supportsMarket(market) || !seenMarkets.add(market)) {
                 throw new IllegalArgumentException("Неизвестный или повторённый рынок/политика");
+            }
+        }
+    }
+
+    /** Новые серии используют только три основных рынка; сохранённые серии проходят validate(). */
+    public void validateNewSeries() {
+        validate();
+        for (String market : markets()) {
+            if (!ExperimentScenarios.MARKETS.contains(market)) {
+                throw new IllegalArgumentException("Для новых серий доступны только три основных рынка");
             }
         }
     }

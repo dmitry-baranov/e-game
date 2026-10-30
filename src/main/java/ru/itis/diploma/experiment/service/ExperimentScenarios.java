@@ -18,13 +18,16 @@ import java.util.SplittableRandom;
 @Component
 public class ExperimentScenarios {
     public static final String VERSION = "market-v5";
-    public static final List<String> MARKETS = List.of("BUDGET", "COMPETITIVE", "ADVERTISING",
+    public static final List<String> MARKETS = List.of("BUDGET", "COMPETITIVE", "ADVERTISING");
+    // Старые серии могут продолжаться с ранее сохранённым marketMix.
+    private static final List<String> ALL_MARKETS = List.of("BUDGET", "COMPETITIVE", "ADVERTISING",
         "QUALITY_FOCUS", "LOYALTY", "CREDIT_CRUNCH", "PERISHABLE", "OVERSUPPLY");
     private static final String[] NAMES = {"Бюджетный", "Конкурентный", "Дорогая реклама",
         "Ставка на качество", "Лояльный покупатель", "Дорогие кредиты", "Быстрый износ",
         "Избыточное предложение"};
     /** Имена, сохраняемые в experiment_run.market: фильтр статистики использует тот же справочник. */
     public static final List<String> MARKET_NAMES = List.of(NAMES);
+    public static boolean supportsMarket(String market) { return ALL_MARKETS.contains(market); }
     public record Scenario(long seed, String market, int bots, int horizon, CreateGameDto game) {}
 
     /**
@@ -63,7 +66,7 @@ public class ExperimentScenarios {
         String[] types = c.markets();
         int pickedIndex = rng.nextInt(types.length);
         String picked = types[pickedIndex];
-        int type = MARKETS.indexOf(picked);
+        int type = ALL_MARKETS.indexOf(picked);
         boolean modernMarkets = "market-v4".equals(version) || VERSION.equals(version);
         if (type < 0 || (type >= 3 && !modernMarkets)) {
             throw new IllegalArgumentException("Рынок не поддерживается генератором " + version + ": " + picked);
