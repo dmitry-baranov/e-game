@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+/** Данные формы изменения отображаемого имени аккаунта. */
 public class EditAccount {
+    /** Новое имя пользователя. */
     private String fullName;
 }

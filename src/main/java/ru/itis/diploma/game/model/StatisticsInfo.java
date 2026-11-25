@@ -20,35 +20,50 @@ import java.math.BigDecimal;
 @jakarta.persistence.Table(
     uniqueConstraints = @jakarta.persistence.UniqueConstraint(columnNames = {"manufacturer_id", "tradeDate"}),
     indexes = @jakarta.persistence.Index(columnList = "manufacturer_id,tradeDate"))
+/** Сохранённые показатели одного предприятия за один торговый день. */
 public class StatisticsInfo {
 
+    /** Идентификатор дневного среза. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Номер игрового дня, к которому относятся показатели. */
     private Integer tradeDate;
 
+    /** Предприятие, чьи результаты записаны. */
     @ManyToOne
     private Manufacturer manufacturer;
 
-    private Integer productionCapacityPerDay; //производственные мощности
+    /** Производственная мощность на этот день, штук в день. */
+    private Integer productionCapacityPerDay;
 
-    private Integer productsSold; //количество проданного товаров
+    /** Число товаров, проданных за день. */
+    private Integer productsSold;
 
-    private BigDecimal price; //цена товара
+    /** Цена единицы товара на этот день. */
+    private BigDecimal price;
 
-    private Integer productsProduced; //количество произведенного товаров
+    /** Число товаров, произведённых за день. */
+    private Integer productsProduced;
 
+    /** Непроданный остаток товаров после дня. */
     private Integer productsInStock;
 
-    private BigDecimal paidTaxesAmount; //выплаченные налоги
+    /** Сумма налога с продаж, уплаченная в этот день. */
+    private BigDecimal paidTaxesAmount;
 
-    private BigDecimal repaidInvestmentCreditAmount; //выплаченные кредиты
-    private BigDecimal repaidBusinessCreditAmount; //выплаченные кредиты
+    /** Сумма погашенного за день инвестиционного кредита. */
+    private BigDecimal repaidInvestmentCreditAmount;
+    /** Сумма погашенного за день оборотного кредита. */
+    private BigDecimal repaidBusinessCreditAmount;
 
-    private BigDecimal currentInvestmentCreditDebtAmount; //текущий долг
-    private BigDecimal currentBusinessCreditDebtAmount; //текущий долг
+    /** Непогашенный инвестиционный долг на этот день. */
+    private BigDecimal currentInvestmentCreditDebtAmount;
+    /** Непогашенный оборотный долг на этот день. */
+    private BigDecimal currentBusinessCreditDebtAmount;
 
+    /** Денежный баланс предприятия после операций этого дня. */
     private BigDecimal balance;
 
 }

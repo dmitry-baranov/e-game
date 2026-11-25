@@ -15,7 +15,7 @@ src/main/java/ru/itis/diploma/
 │   └── GameViewExtension.java
 ├── experiment/
 │   ├── analytics/   # статистика серий, игр, ботов и обучение
-│   ├── bot/         # фабрика участников и политики ботов, README с маршрутом чтения
+│   ├── bot/         # фабрика участников и политики ботов; model/ — данные решения бота
 │   ├── config/      # проверка параметров серии
 │   ├── controller/  # запуск/управление и ссылка со страницы игры
 │   ├── model/       # JPA-сущности серий и журнала решений
@@ -31,4 +31,4 @@ src/main/java/ru/itis/diploma/
 
 Перенос Java-классов изменил пакеты и импорты, но сохранил названия сущностей и таблиц, правила игры, маршруты HTTP и границы транзакций. Внешняя ML-служба остаётся в `ml/`; интерфейс экспериментов доступен только на экспериментальном контуре.
 
-Начать чтение логики можно с [маршрута в README ботов](src/main/java/ru/itis/diploma/experiment/bot/README.md). Результаты реализации интерфейса описаны в [отчёте седьмой итерации](analitics/STRATEGY_AGENTS_STAGE7_IMPLEMENTATION.md).
+Начать чтение логики можно с [маршрута эксперимента](src/main/java/ru/itis/diploma/experiment/README.md), затем перейти к [политикам ботов](src/main/java/ru/itis/diploma/experiment/bot/README.md). Результаты реализации интерфейса описаны в [отчёте седьмой итерации](analitics/STRATEGY_AGENTS_STAGE7_IMPLEMENTATION.md).

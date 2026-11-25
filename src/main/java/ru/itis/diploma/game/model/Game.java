@@ -20,54 +20,77 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+/** Условия одной игры, общие для всех участвующих в ней производителей. */
 public class Game {
 
+    /** Идентификатор игры. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Отображаемое название игры. */
     private String name;
 
+    /** Реальное время создания игры. */
     private LocalDateTime startDate;
 
+    /** Реальное время окончания; до завершения null. */
     private LocalDateTime endDate;
 
+    /** CREATED, STARTED, STOPPED или FINISHED. */
     @Enumerated(EnumType.STRING)
     private GameStatus status;
 
+    /** Номер уже достигнутого игрового дня, изначально ноль. */
     @Builder.Default
     private Integer currentDay = 0;
 
-    private Integer timeUnit; // модельное время в минутах(сутки = ? минут)
+    /** Длительность одного модельного дня в минутах для обычного расписания игры. */
+    private Integer timeUnit;
 
-    private BigDecimal interestRateInvestmentCredit; // процентная ставка на стартовый капитал(инвестиционный кредит - для организации производства(оборудование, помещение))
+    /** Годовая ставка инвестиционного кредита, в процентах. */
+    private BigDecimal interestRateInvestmentCredit;
 
-    private BigDecimal investmentCreditTermMonths; // cрок инвестиционного кредита в месяцах
+    /** Срок погашения инвестиционного кредита в месяцах. */
+    private BigDecimal investmentCreditTermMonths;
 
-    private BigDecimal interestRateBusinessCredit; // процентная ставка на оборотные средства(оборотный кредит - на сырье для выпуска продукции)
+    /** Годовая ставка оборотного кредита на следующую партию, в процентах. */
+    private BigDecimal interestRateBusinessCredit;
 
-    private BigDecimal salesTax; // налог с продаж
+    /** Ставка налога с продаж, в процентах. */
+    private BigDecimal salesTax;
 
-    private BigDecimal baseCostPrice;//базовая себестоимость производства единицы продукции
+    /** Базовая себестоимость одной единицы товара до учёта качества. */
+    private BigDecimal baseCostPrice;
 
-    private BigDecimal baseAdvertisementPrice; //базовая цена рекламы
+    /** Базовая стоимость единицы рекламной интенсивности в день. */
+    private BigDecimal baseAdvertisementPrice;
 
-    private BigDecimal productPower; //сколько необходимо денег для того чтобы производить на единицу продукции больше
+    /** Стоимость приобретения дополнительной производственной мощности. */
+    private BigDecimal productPower;
 
+    /** Вес ассортимента при выборе товара виртуальным покупателем. */
     private BigDecimal assortmentWeight;
 
+    /** Вес качества в предпочтениях виртуального покупателя. */
     private BigDecimal qualityWeight;
 
+    /** Вес рекламы в предпочтениях виртуального покупателя. */
     private BigDecimal advertisementWeight;
 
+    /** Вес привычки покупать у знакомого производителя. */
     private BigDecimal habitWeight;
 
+    /** Сколько прошедших дней учитывается при оценке привычки покупателя. */
     private Integer habitTrackingDays;
 
-    private Integer purchaseLimit; // величина насыщения покупателя(по наличии такого количества товаров покупатель перестает совершать покупки до тех пор, пока не появилась необходимость купить новые товары по причине изношенности имеющихся)
+    /** Максимум ещё не изношенных товаров у покупателя одновременно. */
+    private Integer purchaseLimit;
 
-    private BigDecimal dailySpendingLimit; // сумме средств покупателя в день, которые он может потратить на покупки, максимум ежедневных трат
+    /** Максимальный бюджет покупателя на один торговый день. */
+    private BigDecimal dailySpendingLimit;
 
-    private Integer absoluteQualityProductLife; // срок эксплуатации для абсолютно качетственного товара(индекс кач-ва = 1)
+    /** Срок службы товара с максимальным качеством (индекс 1), в днях. */
+    private Integer absoluteQualityProductLife;
 
 }

@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: experiments
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5437:5432"
     volumes:
       - experiment_postgres_data:/var/lib/postgresql/data
     healthcheck:

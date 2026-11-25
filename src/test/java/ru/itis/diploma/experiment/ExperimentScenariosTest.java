@@ -44,16 +44,11 @@ class ExperimentScenariosTest {
     }
 
     @Test
-    void evaluationUsesSameWorldForBothPolicies() {
+    void evaluationCannotBeStartedWithoutRecommendationPolicies() {
         var c = new ExperimentConfig();
         c.setMode("EVALUATE");
-        var rules = generator.generate(c, 1);
-        var model = generator.generate(c, 2);
-        assertEquals(rules.seed(), model.seed());
-        assertEquals(rules.horizon(), model.horizon());
-        assertEquals(rules.game().getPurchaseLimit(), model.game().getPurchaseLimit());
-        c.setTarget(3);
         assertThrows(IllegalArgumentException.class, c::validate);
+        assertThrows(IllegalArgumentException.class, () -> generator.generate(c, 1));
     }
 
     @Test
@@ -93,11 +88,11 @@ class ExperimentScenariosTest {
     @Test
     void newMarketsChangeOnlyTheirDeclaredConditions() {
         var c = new ExperimentConfig();
-        assertEquals(8, c.markets().length);
+        assertEquals(List.of("BUDGET", "COMPETITIVE", "ADVERTISING"), List.of(c.markets()));
         c.setMarketMix("COMPETITIVE");
         var baseline = generator.generate(c, 1);
         var standard = baseline.game();
-        for (String market : ExperimentScenarios.MARKETS.subList(3, 8)) {
+        for (String market : List.of("QUALITY_FOCUS", "LOYALTY", "CREDIT_CRUNCH", "PERISHABLE", "OVERSUPPLY")) {
             c.setMarketMix(market);
             var scenario = generator.generate(c, 1);
             var game = scenario.game();
@@ -132,24 +127,9 @@ class ExperimentScenariosTest {
         }
         c.setMarketMix("QUALITY_FOCUS,UNKNOWN");
         assertThrows(IllegalArgumentException.class, c::validate);
+        c.setMarketMix("QUALITY_FOCUS");
+        c.validate(); // сохранённая серия продолжает работать
+        assertThrows(IllegalArgumentException.class, c::validateNewSeries);
     }
 
-    @Test
-    void evaluationPairsUseIdenticalWorldsForEveryNewMarket() {
-        var c = new ExperimentConfig();
-        c.setMode("EVALUATE");
-        for (String market : ExperimentScenarios.MARKETS.subList(3, 8)) {
-            c.setMarketMix(market);
-            var rules = generator.generate(c, 1);
-            var model = generator.generate(c, 2);
-            assertEquals(rules.seed(), model.seed());
-            assertEquals(rules.market(), model.market());
-            assertEquals(rules.horizon(), model.horizon());
-            // Only the display name differs: the two games share every buyer/financing parameter.
-            var displayName = model.game().getName();
-            model.game().setName(rules.game().getName());
-            assertEquals(rules.game(), model.game());
-            model.game().setName(displayName);
-        }
-    }
 }

@@ -11,9 +11,12 @@ import java.math.BigDecimal;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+/** Параметры следующего выпуска уже открытого предприятия. */
 public class NewProductionParameters extends CommonProductionParameters {
 
+    /** Рассчитанные затраты на всю партию и рекламу. */
     private BigDecimal productionCosts;
+    /** Запрашиваемый оборотный кредит для покрытия нехватки денег. */
     private BigDecimal businessCreditAmount;
 
 }

@@ -15,6 +15,12 @@ import java.util.Optional;
 public class ExperimentGameViewExtension implements GameViewExtension {
     private final JdbcTemplate jdbc;
 
+    /**
+     * Находит попытку эксперимента, в рамках которой была создана игра.
+     *
+     * @param gameId идентификатор игры
+     * @return идентификатор попытки либо пустое значение для обычной игры
+     */
     @Override
     public Optional<Long> runForGame(Long gameId) {
         return jdbc.query("SELECT id FROM experiment_run WHERE game_id=? LIMIT 1",

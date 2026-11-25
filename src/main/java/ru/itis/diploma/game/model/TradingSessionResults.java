@@ -17,23 +17,31 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+/** Факт продажи партии товаров одного производителя в торговый день. */
 public class TradingSessionResults {
 
+    /** Идентификатор записи о продаже. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Номер игрового дня продажи. */
     private Integer tradeDate;
 
+    /** Предприятие-продавец. */
     @ManyToOne
     private Manufacturer manufacturer;
 
-    private Integer productNumber; //количество проданных товаров
+    /** Количество товаров в этой продаже. */
+    private Integer productNumber;
 
-    private BigDecimal price; //цена товара
+    /** Цена одной единицы проданного товара. */
+    private BigDecimal price;
 
+    /** Качество товара на момент продажи; влияет на срок его службы. */
     private BigDecimal qualityIndex;
 
-    private Boolean isWornOut; // изношенный товар
+    /** Истёк ли срок службы купленного товара у покупателя. */
+    private Boolean isWornOut;
 
 }

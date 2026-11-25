@@ -16,16 +16,21 @@ import jakarta.persistence.ManyToOne;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+/** Сообщение участнику об игровом событии в конкретный день. */
 public class GameNotifications {
+    /** Идентификатор уведомления. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Предприятие-получатель уведомления. */
     @ManyToOne
     private Manufacturer manufacturer;
 
+    /** Номер игрового дня события. */
     private Integer date;
 
+    /** Текст уведомления игроку. */
     private String message;
 
 }

@@ -27,21 +27,19 @@ import static org.mockito.Mockito.when;
 class BotParticipantsTest {
     @Test
     void collectRotatesPoliciesBetweenAttempts() {
-        String[] policies = {"CAUTIOUS", "PRICE", "QUALITY"};
+        String[] policies = {"CAUTIOUS", "PRICE", "STOCK"};
         assertEquals("CAUTIOUS", BotParticipants.policyFor("COLLECT", policies, 1, 0));
         assertEquals("PRICE", BotParticipants.policyFor("COLLECT", policies, 1, 1));
         assertEquals("PRICE", BotParticipants.policyFor("COLLECT", policies, 2, 0));
-        assertEquals("QUALITY", BotParticipants.policyFor("COLLECT", policies, 2, 1));
+        assertEquals("STOCK", BotParticipants.policyFor("COLLECT", policies, 2, 1));
     }
 
     @Test
-    void evaluationOnlyChangesFirstBotInPairedGames() {
-        String[] policies = {"CAUTIOUS", "PRICE", "QUALITY"};
-        assertEquals("EVAL_RULES", BotParticipants.policyFor("EVALUATE", policies, 1, 0));
-        assertEquals("MODEL", BotParticipants.policyFor("EVALUATE", policies, 2, 0));
-        for (int i = 1; i < 10; i++)
-            assertEquals(BotParticipants.policyFor("EVALUATE", policies, 1, i),
-                BotParticipants.policyFor("EVALUATE", policies, 2, i));
+    void policiesOnlyRotateAmongBasicChoices() {
+        String[] policies = {"CAUTIOUS", "PRICE", "STOCK"};
+        for (int number = 1; number < 5; number++)
+            for (int index = 0; index < 10; index++)
+                assertTrue(List.of(policies).contains(BotParticipants.policyFor("COLLECT", policies, number, index)));
     }
 
     @Test
@@ -85,8 +83,8 @@ class BotParticipantsTest {
         var first = participants.create("COLLECT", new String[]{"CAUTIOUS"}, 1, 3, new CreateGameDto());
         var second = participants.create("COLLECT", new String[]{"CAUTIOUS"}, 2, 3, new CreateGameDto());
         assertEquals(3, byEmail.size());
-        assertEquals(List.of("bot-CAUTIOUS-1@experiment.invalid", "bot-CAUTIOUS-2@experiment.invalid",
-            "bot-CAUTIOUS-3@experiment.invalid"), byEmail.keySet().stream().sorted().toList());
+        assertEquals(List.of("bot-CAUTIOUS-1@experiment.example", "bot-CAUTIOUS-2@experiment.example",
+            "bot-CAUTIOUS-3@experiment.example"), byEmail.keySet().stream().sorted().toList());
         for (int i = 0; i < 3; i++) {
             var firstPlayer = playersByGame.get(first.getId()).get(i);
             var secondPlayer = playersByGame.get(second.getId()).get(i);
